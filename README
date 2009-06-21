@@ -1,30 +1,37 @@
-An instance of TweetStream is iterable. Each iteration returns a dictionary.
-The dictionary is the same as the json that is returned from the Twitter
-streaming API.
+##########################################
+tweetstream - Simple twitter streaming API
+##########################################
 
-Note: reads from the stream are blocking!
+Introduction
+------------
+
+tweetstream provides a single class, TweetStream, that can be used to get
+tweets from Twitter's streaming API. An instance of the class can be used as
+an iterator. In addition to fetching tweets, the object keeps track of
+the number of tweets collected and the rate at which tweets are received.
+
+**Note** that the API is blocking. If for some reason data is not immediatly
+available, calls will block until enough data is available to yield a tweet.
+
+Examples
+--------
+
+Printing all incomming tweets:
 
 >>> stream = tweetstream.TweetStream("username", "password")
 >>> for tweet in stream:
-        print tweet
+...     print tweet
 
 
-The stream object can also be used as a context, as in
+The stream object can also be used as a context, as in this example that
+prints the author for each tweet as well as the tweet count and rate:
 
 >>> with tweetstream.TweetStream("username", "password") as stream
 ...     for tweet in stream:
 ...         print "Got tweet from %-16s\t( tweet %d, rate %.1f tweets/sec)" % (
 ...                 tweet["user"]["screen_name"], stream.count, stream.rate )
 
-The object exposes the integer count, the number of tweets returned, and
-the float rate, the rate at which tweets have been returned. The period over
-which the rate is calculated can be changed by setting the value of
-rate_period. rate_period should be a number of seconds.
-
-
-
-Example tweet fetcher using AMQP/carrot
-
+Simple tweet fetcher that sends tweets to an AMQP message server using carrot:
 
 >>> from carrot.messaging import Publisher
 >>> from carrot.connection import AMQPConnection
@@ -39,4 +46,17 @@ Example tweet fetcher using AMQP/carrot
 ...        publisher.send(tweet)
 >>> publisher.close()
 
-"""
+
+Contact
+-------
+
+The author is Rune Halvorsen <runefh@gmail.com>. The project resides at
+http://bitbucket.org/runeh/tweetstream . If you find bugs, or have feature
+requests, please report them in the project site issue tracker. Patches are
+also very welcome.
+
+License
+-------
+
+This software is licensed under the ``New BSD License``. See the ``LICENCE``
+file in the top distribution directory for the full license text.
