@@ -10,6 +10,9 @@ tweets from Twitter's streaming API. An instance of the class can be used as
 an iterator. In addition to fetching tweets, the object keeps track of
 the number of tweets collected and the rate at which tweets are received.
 
+Twitter's documentation about the streaming API can be found here:
+http://apiwiki.twitter.com/Streaming-API-Documentation .
+
 **Note** that the API is blocking. If for some reason data is not immediatly
 available, calls will block until enough data is available to yield a tweet.
 
