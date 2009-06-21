@@ -1,26 +1,23 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.0'
+import tweetstream
+author, email = tweetstream.__author__[:-1].split(' <')
 
 setup(name='tweetstream',
-      version=version,
+      version=tweetstream.__version__,
       description="",
-      long_description="""\
-""",
-      classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
-      keywords='',
-      author='',
-      author_email='',
-      url='',
-      license='',
+      long_description=tweetstream.__doc__,
+      classifiers=[
+            'License :: OSI Approved :: BSD License',
+            'Intended Audience :: Developers',
+            ],
+      keywords='twitter',
+      author=author,
+      author_email=email,
+      url=tweetstream.__homepage__,
+      license='BSD',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
       zip_safe=False,
-      install_requires=[
-          # -*- Extra requirements: -*-
-      ],
-      entry_points="""
-      # -*- Entry points: -*-
-      """,
       )
