@@ -1,28 +1,5 @@
 """
 Simple iterator class for accessing Twitters streaming API
-
-An instance of TweetStream is iterable. Each iteration returns a dictionary.
-The dictionary is the same as the json that is returned from the Twitter
-streaming API.
-
-Note: reads from the stream are blocking!
-
->>> stream = tweetstream.TweetStream("username", "password")
->>> for tweet in stream:
-        print tweet
-
-
-The stream object can also be used as a context, as in
-
->>> with tweetstream.TweetStream("username", "password") as stream
-...     for tweet in stream:
-...         print "Got tweet from %-16s\t( tweet %d, rate %.1f tweets/sec)" % (
-...                 tweet["user"]["screen_name"], stream.count, stream.rate )
-
-The object exposes the integer count, the number of tweets returned, and
-the float rate, the rate at which tweets have been returned. The period over
-which the rate is calculated can be changed by setting the value of
-rate_period. rate_period should be a number of seconds.
 """
 __version__ = "0.1"
 __author__ = "Rune Halvorsen <runefh@gmail.com>"
