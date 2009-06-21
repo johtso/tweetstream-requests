@@ -5,6 +5,8 @@ An instance of TweetStream is iterable. Each iteration returns a dictionary.
 The dictionary is the same as the json that is returned from the Twitter
 streaming API.
 
+Note: reads from the stream are blocking!
+
 >>> stream = tweetstream.TweetStream("username", "password")
 >>> for tweet in stream:
         print tweet
@@ -32,7 +34,7 @@ import time
 import anyjson
 
 SPRITZER_URL = "http://stream.twitter.com/spritzer.json"
-
+USER_AGENT = "TweetStream %s" % __version__
 
 class AuthenticationError(Exception):
     pass
@@ -44,9 +46,6 @@ class TweetStream(object):
     :param password: Twitter password for the account accessing the API.
 
     :keyword url: URL to connect to. By default, the public "spritzer" url.
-
-    :keyword ssl: see :attr:`ssl`.
-
 
     .. attribute:: connected
 
@@ -74,8 +73,16 @@ class TweetStream(object):
 
         The ammount of time to sample tweets to calculate tweet rate. By
         default 10 seconds. Changes to this attribute will not be reflected
-        until the next time the rate is calculated.
+        until the next time the rate is calculated. The rate of tweets vary
+        with time of day etc. so it's usefull to set this to something
+        sensible.
 
+    .. attribute:: user_agent
+
+        User agent string that will be included in the request. NOTE: This can
+        not be changed after the connection has been made. This property must
+        thus be set before accessing the iterator. The default is set in
+        :attr: `USER_AGENT`.
 """
 
     def __init__(self, username, password, url=SPRITZER_URL):
@@ -92,6 +99,7 @@ class TweetStream(object):
         self.starttime = None
         self.count = 0
         self.rate = 0
+        self.user_agent = USER_AGENT
 
     def __iter__(self):
         return self
@@ -106,11 +114,13 @@ class TweetStream(object):
 
     def _init_auth(self):
         """Set up authentication for the connection"""
-        # stolen from the urllib2 tutorial on voidspace
+        # stolen from the urllib2 missing manual
+        # (http://www.voidspace.org.uk/python/articles/urllib2.shtmltutorial)
         try:
             password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
             top_level_url = "http://stream.twitter.com/"
-            password_mgr.add_password(None, top_level_url, self._username, self._password)
+            password_mgr.add_password(None, top_level_url, self._username,
+                                      self._password)
             handler = urllib2.HTTPBasicAuthHandler(password_mgr)
             opener = urllib2.build_opener(handler)
             opener.open(self.url)
@@ -125,7 +135,10 @@ class TweetStream(object):
         """Open the connection to the twitter server"""
         if not self._authenticated:
             self._init_auth()
-        self._conn = urllib2.urlopen(self.url)
+
+        headers = { 'User-Agent' : self.user_agent }
+        req = urllib2.Request(self.url, None, headers)
+        self._conn = urllib2.urlopen(req)
         self.connected = True
         if not self.starttime:
             self.starttime = time.time()
