@@ -36,8 +36,12 @@ import anyjson
 SPRITZER_URL = "http://stream.twitter.com/spritzer.json"
 USER_AGENT = "TweetStream %s" % __version__
 
+
 class AuthenticationError(Exception):
+    """Exception raised if the username/password is not accepted
+    """
     pass
+
 
 class TweetStream(object):
     """A network connection to Twitters streamign API
@@ -125,8 +129,8 @@ class TweetStream(object):
             opener = urllib2.build_opener(handler)
             opener.open(self.url)
             urllib2.install_opener(opener)
-        except urllib2.HTTPError, e:
-            if e.code==401:
+        except urllib2.HTTPError, exception:
+            if exception.code == 401:
                 raise AuthenticationError("Invalid credentials for Twitter")
             else:
                 raise
@@ -136,7 +140,7 @@ class TweetStream(object):
         if not self._authenticated:
             self._init_auth()
 
-        headers = { 'User-Agent' : self.user_agent }
+        headers = {'User-Agent': self.user_agent}
         req = urllib2.Request(self.url, None, headers)
         self._conn = urllib2.urlopen(req)
         self.connected = True
@@ -165,4 +169,3 @@ class TweetStream(object):
         Close the connection to the streaming server.
         """
         self._conn.close()
-
