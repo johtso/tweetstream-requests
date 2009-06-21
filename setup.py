@@ -6,8 +6,8 @@ author, email = tweetstream.__author__[:-1].split(' <')
 
 setup(name='tweetstream',
     version=tweetstream.__version__,
-    description="",
-    long_description=tweetstream.__doc__,
+    description="Simple Twitter streaming API access",
+    long_description=open("README").read(),
     classifiers=[
         'License :: OSI Approved :: BSD License',
         'Intended Audience :: Developers',

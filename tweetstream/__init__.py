@@ -1,5 +1,5 @@
 """
-Simple iterator class for accessing Twitters streaming API
+Simple Twitter streaming API access
 """
 __version__ = "0.1"
 __author__ = "Rune Halvorsen <runefh@gmail.com>"
