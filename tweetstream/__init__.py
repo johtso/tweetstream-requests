@@ -20,6 +20,17 @@ class AuthenticationError(Exception):
     pass
 
 
+class ConnectionError(Exception):
+    """Raised when there are network problems. This means when there are
+    dns errors, network errors, twitter issues
+
+    """
+    def __init__(self, reason):
+        self.reason = reason
+
+    def __str__(self):
+        return '<ConnectionError %s>' % self.reason
+
 class TweetStream(object):
     """A network connection to Twitters streamign API
 
@@ -108,9 +119,12 @@ class TweetStream(object):
             urllib2.install_opener(opener)
         except urllib2.HTTPError, exception:
             if exception.code == 401:
-                raise AuthenticationError("Invalid credentials for Twitter")
-            else:
+                raise AuthenticationError("Access denied")
+            else: # re raise. No idea what would cause this, so want to know
                 raise
+        except urllib2.URLError, exception:
+            raise ConnectionError(exception.reason)
+
 
     def _init_conn(self):
         """Open the connection to the twitter server"""
@@ -128,18 +142,21 @@ class TweetStream(object):
 
     def next(self):
         """Return the next available tweet. This call is blocking!"""
-        if not self.connected:
-            self._init_conn()
+        try:
+            if not self.connected:
+                self._init_conn()
 
-        rate_time = time.time() - self._rate_ts
-        if not self._rate_ts or rate_time > self.rate_period:
-            self.rate = self._rate_cnt / rate_time
-            self._rate_cnt = 0
-            self._rate_ts = time.time()
+            rate_time = time.time() - self._rate_ts
+            if not self._rate_ts or rate_time > self.rate_period:
+                self.rate = self._rate_cnt / rate_time
+                self._rate_cnt = 0
+                self._rate_ts = time.time()
 
-        self.count += 1
-        self._rate_cnt += 1
-        return anyjson.deserialize(self._conn.readline())
+            self.count += 1
+            self._rate_cnt += 1
+            return anyjson.deserialize(self._conn.readline())
+        except IOError, e:
+            raise
 
     def close(self):
         """
