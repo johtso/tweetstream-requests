@@ -206,6 +206,7 @@ class ReconnectingTweetStream(TweetStream):
             try:
                 return TweetStream.next(self)
             except ConnectionError, e:
+                self._reconnects += 1
                 if self._reconnects > self.max_reconnects:
                     raise ConnectionError("Too many retries")
 
@@ -215,6 +216,5 @@ class ReconnectingTweetStream(TweetStream):
                     self._error_cb(e)
 
                 time.sleep(self.retry_wait)
-                reconnects += 1
         # Don't listen to auth error, since we can't reasonably reconnect
         # when we get one.
