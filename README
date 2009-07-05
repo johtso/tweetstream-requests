@@ -5,10 +5,13 @@ tweetstream - Simple twitter streaming API
 Introduction
 ------------
 
-tweetstream provides a single class, TweetStream, that can be used to get
+tweetstream provides a class, TweetStream, that can be used to get
 tweets from Twitter's streaming API. An instance of the class can be used as
 an iterator. In addition to fetching tweets, the object keeps track of
 the number of tweets collected and the rate at which tweets are received.
+
+There's also a ReconnectingTweetStream class that handles automatic
+reconnecting.
 
 Twitter's documentation about the streaming API can be found here:
 http://apiwiki.twitter.com/Streaming-API-Documentation .
@@ -49,6 +52,11 @@ Simple tweet fetcher that sends tweets to an AMQP message server using carrot:
 ...        publisher.send(tweet)
 >>> publisher.close()
 
+
+Changelog
+---------
+
+See the CHANGELOG file
 
 Contact
 -------
