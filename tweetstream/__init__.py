@@ -22,14 +22,14 @@ class AuthenticationError(Exception):
 
 class ConnectionError(Exception):
     """Raised when there are network problems. This means when there are
-    dns errors, network errors, twitter issues
+    dns errors, network errors, twitter issues"""
 
-    """
     def __init__(self, reason):
         self.reason = reason
 
     def __str__(self):
         return '<ConnectionError %s>' % self.reason
+
 
 class TweetStream(object):
     """A network connection to Twitters streamign API
@@ -125,7 +125,6 @@ class TweetStream(object):
         except urllib2.URLError, exception:
             raise ConnectionError(exception.reason)
 
-
     def _init_conn(self):
         """Open the connection to the twitter server"""
         if not self._authenticated:
@@ -139,7 +138,6 @@ class TweetStream(object):
             self.starttime = time.time()
         if not self._rate_ts:
             self._rate_ts = time.time()
-
 
     def next(self):
         """Return the next available tweet. This call is blocking!"""
@@ -165,10 +163,58 @@ class TweetStream(object):
             self.close()
             raise ConnectionError("Got invalid data from twitter")
 
-
     def close(self):
         """
         Close the connection to the streaming server.
         """
         self.connected = False
         self._conn.close()
+
+
+class ReconnectingTweetStream(TweetStream):
+    """TweetStream class that automatically tries to reconnect if the
+    connecting goes down. Reconnecting, and waiting for reconnecting, is
+    blocking.
+
+    :param username: See :TweetStream:
+
+    :param password: See :TweetStream:
+
+    :keyword url: See :TweetStream:
+
+    :keyword reconnects: Number of reconnects before a ConnectionError is
+        raised. Default is 3
+
+    :error_cb: Optional callable that will be called just before trying to
+        reconnect. The callback will be called with a single argument, the
+        exception that caused the reconnect attempt. Default is None
+
+    :retry_wait: Time to wait before reconnecting in seconds. Default is 5
+
+    """
+
+    def __init__(self, username, password, url=SPRITZER_URL,
+                 reconnects=3, error_cb=None, retry_wait=5):
+        self.max_reconnects = reconnects
+        self.retry_wait = retry_wait
+        self._reconnects = 0
+        self._error_cb = error_cb
+        TweetStream.__init__(self, username, password, url=url)
+
+    def next(self):
+        while True:
+            try:
+                return TweetStream.next(self)
+            except ConnectionError, e:
+                if self._reconnects > self.max_reconnects:
+                    raise ConnectionError("Too many retries")
+
+                # Note: error_cb is not called on the last error since we
+                # raise a ConnectionError instead
+                if  callable(self._error_cb):
+                    self._error_cb(e)
+
+                time.sleep(self.retry_wait)
+                reconnects += 1
+        # Don't listen to auth error, since we can't reasonably reconnect
+        # when we get one.
