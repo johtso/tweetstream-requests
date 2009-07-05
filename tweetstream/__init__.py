@@ -140,6 +140,7 @@ class TweetStream(object):
         if not self._rate_ts:
             self._rate_ts = time.time()
 
+
     def next(self):
         """Return the next available tweet. This call is blocking!"""
         try:
@@ -154,12 +155,20 @@ class TweetStream(object):
 
             self.count += 1
             self._rate_cnt += 1
-            return anyjson.deserialize(self._conn.readline())
-        except IOError, e:
-            raise
+            data = self._conn.readline()
+            if len(data) == 0: # something is wrong
+                self.close()
+                raise ConnectionError("Got entry of length 0. Disconnected")
+
+            return anyjson.deserialize(data)
+        except ValueError, e:
+            self.close()
+            raise ConnectionError("Got invalid data from twitter")
+
 
     def close(self):
         """
         Close the connection to the streaming server.
         """
+        self.connected = False
         self._conn.close()
