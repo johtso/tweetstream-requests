@@ -132,7 +132,8 @@ class TweetStream(object):
         req = urllib2.Request(self.url, self._get_post_data(), headers)
 
         password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        password_mgr.add_password(None, self.url, self._username, self._password)
+        password_mgr.add_password(None, self.url, self._username,
+                                  self._password)
         handler = urllib2.HTTPBasicAuthHandler(password_mgr)
         opener = urllib2.build_opener(handler)
 
