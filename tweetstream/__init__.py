@@ -12,6 +12,9 @@ import time
 import anyjson
 
 SPRITZER_URL = "http://stream.twitter.com/spritzer.json"
+FOLLOW_URL = "http://stream.twitter.com/follow.json"
+TRACK_URL = "http://stream.twitter.com/track.json"
+
 USER_AGENT = "TweetStream %s" % __version__
 
 
@@ -226,3 +229,22 @@ class ReconnectingTweetStream(TweetStream):
                 time.sleep(self.retry_wait)
         # Don't listen to auth error, since we can't reasonably reconnect
         # when we get one.
+
+class FollowStream(TweetStream):
+
+    def __init__(self, user, password, followees, url=FOLLOW_URL, **kwargs):
+        self.followees = followees
+        TweetStream.__init__(self, user, password, url=url, **kwargs)
+
+    def _get_post_data(self):
+        return urllib.urlencode({"followers": ",".join(self.followees)})
+
+
+class TrackStream(TweetStream):
+
+    def __init__(self, user, password, keywords, url=TRACK_URL, **kwargs):
+        self.keywords = keywords
+        TweetStream.__init__(self, user, password, url=url, **kwargs)
+
+    def _get_post_data(self):
+        return urllib.urlencode({"track": ",".join(self.keywords)})
