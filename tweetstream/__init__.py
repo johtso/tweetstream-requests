@@ -1,11 +1,12 @@
 """
 Simple Twitter streaming API access
 """
-__version__ = "0.2"
+__version__ = "0.2-dev"
 __author__ = "Rune Halvorsen <runefh@gmail.com>"
 __homepage__ = "http://bitbucket.org/runeh/tweetstream/"
 __docformat__ = "restructuredtext"
 
+import urllib
 import urllib2
 import time
 import anyjson
@@ -108,15 +109,24 @@ class TweetStream(object):
         """Set up authentication for the connection"""
         # stolen from the urllib2 missing manual
         # (http://www.voidspace.org.uk/python/articles/urllib2.shtmltutorial)
+        password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        top_level_url = "http://stream.twitter.com/"
+        password_mgr.add_password(None, top_level_url, self._username,
+                                  self._password)
+        handler = urllib2.HTTPBasicAuthHandler(password_mgr)
+        opener = urllib2.build_opener(handler)
+        urllib2.install_opener(opener)
+
+    def _init_conn(self):
+        """Open the connection to the twitter server"""
+        if not self._authenticated:
+            self._init_auth()
+
+        headers = {'User-Agent': self.user_agent}
+        req = urllib2.Request(self.url, self._get_post_data(), headers)
         try:
-            password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-            top_level_url = "http://stream.twitter.com/"
-            password_mgr.add_password(None, top_level_url, self._username,
-                                      self._password)
-            handler = urllib2.HTTPBasicAuthHandler(password_mgr)
-            opener = urllib2.build_opener(handler)
-            opener.open(self.url)
-            urllib2.install_opener(opener)
+            self._conn = urllib2.urlopen(req)
+
         except urllib2.HTTPError, exception:
             if exception.code == 401:
                 raise AuthenticationError("Access denied")
@@ -125,19 +135,17 @@ class TweetStream(object):
         except urllib2.URLError, exception:
             raise ConnectionError(exception.reason)
 
-    def _init_conn(self):
-        """Open the connection to the twitter server"""
-        if not self._authenticated:
-            self._init_auth()
-
-        headers = {'User-Agent': self.user_agent}
-        req = urllib2.Request(self.url, None, headers)
-        self._conn = urllib2.urlopen(req)
         self.connected = True
         if not self.starttime:
             self.starttime = time.time()
         if not self._rate_ts:
             self._rate_ts = time.time()
+
+    def _get_post_data(self):
+        """Subclasses that need to add post data to the request can override
+        this method and return post data. The data should be in the format
+        returned by urllib.urlencode."""
+        return None
 
     def next(self):
         """Return the next available tweet. This call is blocking!"""
