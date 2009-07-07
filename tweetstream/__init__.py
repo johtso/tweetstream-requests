@@ -245,7 +245,9 @@ class FollowStream(TweetStream):
 
         :param password: See TweetStream
 
-        :param followees: Iterable containing user IDs to follow
+        :param followees: Iterable containing user IDs to follow.
+          ***Note:*** the user id in question is the numeric ID twitter uses,
+          not the normal username.
 
         :keyword url: Like the url argument to TweetStream, except default
           value is the "follow" endpoint.
@@ -256,7 +258,7 @@ class FollowStream(TweetStream):
         TweetStream.__init__(self, user, password, url=url, **kwargs)
 
     def _get_post_data(self):
-        return urllib.urlencode({"followers": ",".join(self.followees)})
+        return urllib.urlencode({"followers": ",".join(map(str, self.followees))})
 
 
 class TrackStream(TweetStream):
