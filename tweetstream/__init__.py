@@ -29,7 +29,6 @@ URLS = {"firehose": "http://stream.twitter.com/firehose.json",
         "birddog": "http://stream.twitter.com/birddog.json",
         "shadow": "http://stream.twitter.com/shadow.json",
         "follow": "http://stream.twitter.com/follow.json",
-        "gardenhose": "http://stream.twitter.com/gardenhose.json",
         "track": "http://stream.twitter.com/track.json"}
 
 USER_AGENT = "TweetStream %s" % __version__
