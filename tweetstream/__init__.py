@@ -258,7 +258,7 @@ class FollowStream(TweetStream):
         TweetStream.__init__(self, user, password, url=url, **kwargs)
 
     def _get_post_data(self):
-        return urllib.urlencode({"followers": ",".join(map(str, self.followees))})
+        return urllib.urlencode({"follow": ",".join(map(str, self.followees))})
 
 
 class TrackStream(TweetStream):
