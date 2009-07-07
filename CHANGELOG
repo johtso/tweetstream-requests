@@ -8,3 +8,9 @@
  - Added AuthenticationError and ConnectionError exceptions
  - Added ReconnectingTweetStream class that supports automatically
    reconnecting if the connection is dropped
+
+0.3
+
+ - Fixed bugs in authtentication
+ - Added TrackStream and FollowStream classes
+ - Added list of endpoint names, and made them legal values for the url arg

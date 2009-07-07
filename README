@@ -10,6 +10,9 @@ tweets from Twitter's streaming API. An instance of the class can be used as
 an iterator. In addition to fetching tweets, the object keeps track of
 the number of tweets collected and the rate at which tweets are received.
 
+Subclasses are available for accessing the "track" and "follow" streams
+as well.
+
 There's also a ReconnectingTweetStream class that handles automatic
 reconnecting.
 
@@ -36,6 +39,33 @@ prints the author for each tweet as well as the tweet count and rate:
 ...     for tweet in stream:
 ...         print "Got tweet from %-16s\t( tweet %d, rate %.1f tweets/sec)" % (
 ...                 tweet["user"]["screen_name"], stream.count, stream.rate )
+
+
+Stream objects can raise ConnectionError or AuthenticationError exceptions:
+
+>>> try:
+...     with tweetstream.TweetStream("username", "password") as stream
+...         for tweet in stream:
+...             print "Got tweet from %-16s\t( tweet %d, rate %.1f tweets/sec)" % (
+...                     tweet["user"]["screen_name"], stream.count, stream.rate )
+... except tweetstream.ConnectionError, e:
+...     print "Disconnected from twitter. Reason:", e.reason
+
+To get tweets that relate to specific terms, use the TrackStream:
+
+>>> words = ["opera", "firefox", "safari"]
+>>> with tweetstream.TrackStream("username", "password", words) as stream
+...     for tweet in stream:
+...         print "Got interesting tweet:", tweet
+
+To get only tweets from a set of users, use the FollowStream. The following
+would get tweets for user 1, 42 and 8675309
+
+>>> users = [1, 42, 8675309]
+>>> with tweetstream.TweetStream("username", "password", users) as stream
+...     for tweet in stream:
+...         print "Got  tweet from:", tweet["user"]["screen_name"]
+
 
 Simple tweet fetcher that sends tweets to an AMQP message server using carrot:
 
