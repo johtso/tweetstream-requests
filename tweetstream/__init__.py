@@ -106,7 +106,6 @@ class TweetStream(object):
         self._rate_cnt = 0
         self._username = username
         self._password = password
-        self._authenticated = False
 
         self.rate_period = 10 # in seconds
         self.connected = False
@@ -127,28 +126,18 @@ class TweetStream(object):
             self._conn.close()
         return False
 
-    def _init_auth(self):
-        """Set up authentication for the connection"""
-        # stolen from the urllib2 missing manual
-        # (http://www.voidspace.org.uk/python/articles/urllib2.shtmltutorial)
-        password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        top_level_url = "http://stream.twitter.com/"
-        password_mgr.add_password(None, top_level_url, self._username,
-                                  self._password)
-        handler = urllib2.HTTPBasicAuthHandler(password_mgr)
-        opener = urllib2.build_opener(handler)
-        urllib2.install_opener(opener)
-
     def _init_conn(self):
         """Open the connection to the twitter server"""
-        if not self._authenticated:
-            self._init_auth()
-
         headers = {'User-Agent': self.user_agent}
         req = urllib2.Request(self.url, self._get_post_data(), headers)
-        try:
-            self._conn = urllib2.urlopen(req)
 
+        password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        password_mgr.add_password(None, self.url, self._username, self._password)
+        handler = urllib2.HTTPBasicAuthHandler(password_mgr)
+        opener = urllib2.build_opener(handler)
+
+        try:
+            self._conn = opener.open(req)
         except urllib2.HTTPError, exception:
             if exception.code == 401:
                 raise AuthenticationError("Access denied")
