@@ -23,16 +23,14 @@ import anyjson
 
 """
 
-URLS = {
-    "firehose": "http://stream.twitter.com/firehose.json",
-    "gardenhose": "http://stream.twitter.com/gardenhose.json",
-    "spritzer": "http://stream.twitter.com/spritzer.json",
-    "birddog": "http://stream.twitter.com/birddog.json",
-    "shadow": "http://stream.twitter.com/shadow.json",
-    "follow": "http://stream.twitter.com/follow.json",
-    "gardenhose": "http://stream.twitter.com/gardenhose.json",
-    "track": "http://stream.twitter.com/track.json"
-}
+URLS = {"firehose": "http://stream.twitter.com/firehose.json",
+        "gardenhose": "http://stream.twitter.com/gardenhose.json",
+        "spritzer": "http://stream.twitter.com/spritzer.json",
+        "birddog": "http://stream.twitter.com/birddog.json",
+        "shadow": "http://stream.twitter.com/shadow.json",
+        "follow": "http://stream.twitter.com/follow.json",
+        "gardenhose": "http://stream.twitter.com/gardenhose.json",
+        "track": "http://stream.twitter.com/track.json"}
 
 USER_AGENT = "TweetStream %s" % __version__
 
@@ -55,7 +53,7 @@ class ConnectionError(Exception):
 
 
 class TweetStream(object):
-    """A network connection to Twitters streamign API
+    """A network connection to Twitters streaming API
 
     :param username: Twitter username for the account accessing the API.
     :param password: Twitter password for the account accessing the API.
@@ -252,6 +250,17 @@ class ReconnectingTweetStream(TweetStream):
         # when we get one.
 
 class FollowStream(TweetStream):
+    """Stream class for getting tweets from followers.
+
+        :param user: See TweetStream
+
+        :param password: See TweetStream
+
+        :param followees: Iterable containing user IDs to follow
+
+        :keyword url: Like the url argument to TweetStream, except default
+          value is the "follow" endpoint.
+    """
 
     def __init__(self, user, password, followees, url="follow", **kwargs):
         self.followees = followees
@@ -262,6 +271,17 @@ class FollowStream(TweetStream):
 
 
 class TrackStream(TweetStream):
+    """Stream class for getting tweets relevant to keywords.
+
+        :param user: See TweetStream
+
+        :param password: See TweetStream
+
+        :param keywords: Iterable containing keywords to look for
+
+        :keyword url: Like the url argument to TweetStream, except default
+          value is the "track" endpoint.
+    """
 
     def __init__(self, user, password, keywords, url="track", **kwargs):
         self.keywords = keywords
