@@ -8,6 +8,7 @@ __docformat__ = "restructuredtext"
 
 import urllib
 import urllib2
+import socket
 import time
 import anyjson
 
@@ -121,8 +122,7 @@ class TweetStream(object):
         return self
 
     def __exit__(self, *params):
-        if self._conn:
-            self._conn.close()
+        self.close()
         return False
 
     def _init_conn(self):
@@ -183,12 +183,17 @@ class TweetStream(object):
         except ValueError, e:
             self.close()
             raise ConnectionError("Got invalid data from twitter")
+        except socket.error, e:
+            self.close()
+            raise ConnectionError("Server disconnected")
+
 
     def close(self):
         """
         Close the connection to the streaming server.
         """
         self.connected = False
+
         self._conn.close()
 
 
