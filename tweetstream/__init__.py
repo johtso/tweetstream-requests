@@ -45,8 +45,9 @@ class ConnectionError(Exception):
     """Raised when there are network problems. This means when there are
     dns errors, network errors, twitter issues"""
 
-    def __init__(self, reason):
+    def __init__(self, reason, details=None):
         self.reason = reason
+        self.details = details
 
     def __str__(self):
         return '<ConnectionError %s>' % self.reason
@@ -160,32 +161,36 @@ class TweetStream(object):
 
     def next(self):
         """Return the next available tweet. This call is blocking!"""
-        try:
-            if not self.connected:
-                self._init_conn()
+        while True:
+            try:
+                if not self.connected:
+                    self._init_conn()
 
-            rate_time = time.time() - self._rate_ts
-            if not self._rate_ts or rate_time > self.rate_period:
-                self.rate = self._rate_cnt / rate_time
-                self._rate_cnt = 0
-                self._rate_ts = time.time()
+                rate_time = time.time() - self._rate_ts
+                if not self._rate_ts or rate_time > self.rate_period:
+                    self.rate = self._rate_cnt / rate_time
+                    self._rate_cnt = 0
+                    self._rate_ts = time.time()
 
-            data = self._conn.readline()
-            if len(data) == 0: # something is wrong
+                data = self._conn.readline()
+                if data == "": # something is wrong
+                    self.close()
+                    raise ConnectionError("Got entry of length 0. Disconnected")
+                elif data.isspace():
+                    continue
+
+                data = anyjson.deserialize(data)
+                self.count += 1
+                self._rate_cnt += 1
+                return data
+
+            except ValueError, e:
                 self.close()
-                raise ConnectionError("Got entry of length 0. Disconnected")
+                raise ConnectionError("Got invalid data from twitter", details=data)
 
-            data = anyjson.deserialize(data)
-            self.count += 1
-            self._rate_cnt += 1
-            return data
-
-        except ValueError, e:
-            self.close()
-            raise ConnectionError("Got invalid data from twitter")
-        except socket.error, e:
-            self.close()
-            raise ConnectionError("Server disconnected")
+            except socket.error, e:
+                self.close()
+                raise ConnectionError("Server disconnected")
 
 
     def close(self):
