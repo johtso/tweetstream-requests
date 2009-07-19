@@ -106,3 +106,70 @@ def smoke_test_receive_tweets():
     do_test(TrackStream, ["foo", "bar"])
 
 
+def test_keepalive():
+    """Make sure we behave sanely when there are keepalive newlines in the
+    data recevived from twitter"""
+    def tweetsource(request):
+        yield single_tweet+"\n"
+        yield "\n"
+        yield "\n"
+        yield single_tweet+"\n"
+        yield "\n"
+        yield "\n"
+        yield "\n"
+        yield "\n"
+        yield "\n"
+        yield "\n"
+        yield "\n"
+        yield single_tweet+"\n"
+        yield "\n"
+
+    def do_test(klass, *args):
+        with test_server(handler=tweetsource, methods=("post", "get"),
+                         port="random") as server:
+            stream = klass("foo", "bar", *args, url=server.baseurl)
+            try:
+                for tweet in stream:
+                    pass
+            except ConnectionError:
+                assert stream.count == 3
+            else:
+                assert False, "Didn't handle keepalive"
+
+
+    do_test(TweetStream)
+    do_test(FollowStream, [1, 2, 3])
+    do_test(TrackStream, ["foo", "bar"])
+
+
+def test_buffering():
+    """Test if buffering stops data from being returned immediately.
+    If there is some buffering in play that might mean data is only returned
+    from the generator when the buffer is full. If buffer is bigger than a
+    tweet, this will happen. Default buffer size in the part of socket lib
+    that enables readline is 8k. Max tweet length is around 3k."""
+
+    def tweetsource(request):
+        yield single_tweet+"\n"
+        time.sleep(2)
+        # need to yield a bunch here so we're sure we'll return from the
+        # blocking call in case the buffering bug is present.
+        for n in xrange(100):
+            yield single_tweet+"\n"
+
+    def do_test(klass, *args):
+        with test_server(handler=tweetsource, methods=("post", "get"),
+                         port="random") as server:
+            stream = klass("foo", "bar", *args, url=server.baseurl)
+
+            start = time.time()
+            stream.next()
+            first = time.time()
+            diff = first - start
+            assert diff < 1, "Getting first tweet took more than a second!"
+
+    do_test(TweetStream)
+    do_test(FollowStream, [1, 2, 3])
+    do_test(TrackStream, ["foo", "bar"])
+
+
