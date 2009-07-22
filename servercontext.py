@@ -59,7 +59,6 @@ class _TestHandler(BaseHTTPRequestHandler):
         if self.logging:
             BaseHTTPRequestHandler.log_message(self, *args, **kwargs)
 
-
     def send_response(self, *args, **kwargs):
         self._response_sent = True
         BaseHTTPRequestHandler.send_response(self, *args, **kwargs)
@@ -88,6 +87,7 @@ class _TestHandler(BaseHTTPRequestHandler):
             raise AttributeError(name)
 
     def _handle_with_iterator(self, iterator):
+        self.connection.settimeout(0.1)
         for data in iterator:
             if not self.server.server_thread.running:
                 return
