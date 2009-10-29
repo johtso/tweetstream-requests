@@ -1,12 +1,13 @@
 from setuptools import setup, find_packages
 import sys, os
 
-author, email = "Rune Halvorsen", "runefh@gmail.com"
-version = 0.3.3
+author = "Rune Halvorsen" 
+email = "runefh@gmail.com"
+version = "0.3.3"
 homepage = "http://bitbucket.org/runeh/tweetstream/"
 
 setup(name='tweetstream',
-    version=tweetstream.version
+    version=version,
     description="Simple Twitter streaming API access",
     long_description=open("README").read(),
     classifiers=[
