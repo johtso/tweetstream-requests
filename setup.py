@@ -1,11 +1,12 @@
 from setuptools import setup, find_packages
 import sys, os
 
-import tweetstream
-author, email = tweetstream.__author__[:-1].split(' <')
+author, email = "Rune Halvorsen", "runefh@gmail.com"
+version = 0.3.3
+homepage = "http://bitbucket.org/runeh/tweetstream/"
 
 setup(name='tweetstream',
-    version=tweetstream.__version__,
+    version=tweetstream.version
     description="Simple Twitter streaming API access",
     long_description=open("README").read(),
     classifiers=[
@@ -15,7 +16,7 @@ setup(name='tweetstream',
     keywords='twitter',
     author=author,
     author_email=email,
-    url=tweetstream.__homepage__,
+    url=homepage,
     license='BSD',
     packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
     include_package_data=True,
