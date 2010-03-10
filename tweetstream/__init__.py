@@ -24,13 +24,10 @@ import anyjson
 
 """
 
-URLS = {"firehose": "http://stream.twitter.com/firehose.json",
-        "gardenhose": "http://stream.twitter.com/gardenhose.json",
-        "spritzer": "http://stream.twitter.com/spritzer.json",
-        "birddog": "http://stream.twitter.com/birddog.json",
-        "shadow": "http://stream.twitter.com/shadow.json",
-        "follow": "http://stream.twitter.com/follow.json",
-        "track": "http://stream.twitter.com/track.json"}
+URLS = {"firehose": "http://stream.twitter.com/1/statuses/firehose.json",
+        "sample": "http://stream.twitter.com/1/statuses/sample.json",
+        "follow": "http://stream.twitter.com/1/statuses/filter.json",
+        "track": "http://stream.twitter.com/1/statuses/filter.json"}
 
 USER_AGENT = "TweetStream %s" % __version__
 
@@ -60,7 +57,7 @@ class TweetStream(object):
     :param password: Twitter password for the account accessing the API.
 
     :keyword url: URL to connect to. This can be either an endopoint name,
-     such as "spritzer", or a full URL. By default, the public "spritzer" url
+     such as "sample", or a full URL. By default, the public "sample" url
      is used. All known endpoints are defined in the :URLS: attribute
 
     .. attribute:: connected
@@ -101,7 +98,7 @@ class TweetStream(object):
         :attr: `USER_AGENT`.
 """
 
-    def __init__(self, username, password, url="spritzer"):
+    def __init__(self, username, password, url="sample"):
         self._conn = None
         self._rate_ts = None
         self._rate_cnt = 0
@@ -185,6 +182,7 @@ class TweetStream(object):
                 return data
 
             except ValueError, e:
+                print e
                 self.close()
                 raise ConnectionError("Got invalid data from twitter", details=data)
 
@@ -198,8 +196,8 @@ class TweetStream(object):
         Close the connection to the streaming server.
         """
         self.connected = False
-
-        self._conn.close()
+        if self._conn:
+            self._conn.close()
 
 
 class ReconnectingTweetStream(TweetStream):
@@ -224,7 +222,7 @@ class ReconnectingTweetStream(TweetStream):
 
     """
 
-    def __init__(self, username, password, url="spritzer",
+    def __init__(self, username, password, url="sample",
                  reconnects=3, error_cb=None, retry_wait=5):
         self.max_reconnects = reconnects
         self.retry_wait = retry_wait
