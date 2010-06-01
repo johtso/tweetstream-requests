@@ -21,4 +21,18 @@
  - Added proper handling of keepalive newlines
  - Improved handling of closing streams
  - Added missing anyjson dependency to setup
- - Fixed bug where newlines and malformed content were counted as a tweet  
+ - Fixed bug where newlines and malformed content were counted as a tweet
+
+0.3.2
+
+ - This release was skipped over, due to maintainer brainfart.
+
+0.3.3
+
+ - Fixed setup.py so it wont attempt to load modules that aren't installed
+   yet. Fixes installation issue.
+
+0.3.4
+
+ - Updated to latest twitter streaming urls
+ - Fixed a bug where we tried to call a method on None
