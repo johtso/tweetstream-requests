@@ -30,6 +30,24 @@ def test_bad_auth():
         assert_raises(AuthenticationError, stream.next)
 
 
+def test_404_url():
+    """Test that the proper exception is raised when the stream URL can't be
+    found"""
+    def not_found(request):
+        request.send_error(404)
+
+    with test_server(handler=not_found, methods=("post", "get"),
+                     port="random") as server:
+        stream = TweetStream("foo", "bar", url=server.baseurl)
+        assert_raises(ConnectionError, stream.next)
+
+        stream = FollowStream("foo", "bar", [1, 2, 3], url=server.baseurl)
+        assert_raises(ConnectionError, stream.next)
+
+        stream = TrackStream("foo", "bar", ["opera"], url=server.baseurl)
+        assert_raises(ConnectionError, stream.next)
+
+
 def test_bad_content():
     """Test error handling if we are given invalid data"""
     def bad_content(request):

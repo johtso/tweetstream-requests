@@ -139,6 +139,8 @@ class TweetStream(object):
         except urllib2.HTTPError, exception:
             if exception.code == 401:
                 raise AuthenticationError("Access denied")
+            elif exception.code == 404:
+                raise ConnectionError("URL not found: %s" % self.url)
             else: # re raise. No idea what would cause this, so want to know
                 raise
         except urllib2.URLError, exception:
