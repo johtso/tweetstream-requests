@@ -36,3 +36,9 @@
 
  - Updated to latest twitter streaming urls
  - Fixed a bug where we tried to call a method on None
+
+0.3.5
+
+ - Removed a spurious print statement left over from debugging
+ - Introduced common base class for all tweetstream exceptions
+ - Make sure we raise a sensible error on 404. Include url in desc of that error
