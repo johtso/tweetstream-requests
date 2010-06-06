@@ -32,13 +32,17 @@ URLS = {"firehose": "http://stream.twitter.com/1/statuses/firehose.json",
 USER_AGENT = "TweetStream %s" % __version__
 
 
-class AuthenticationError(Exception):
+class TweetStreamError(Exception):
+    """Base class for all tweetstream errors"""
+    pass
+
+class AuthenticationError(TweetStreamError):
     """Exception raised if the username/password is not accepted
     """
     pass
 
 
-class ConnectionError(Exception):
+class ConnectionError(TweetStreamError):
     """Raised when there are network problems. This means when there are
     dns errors, network errors, twitter issues"""
 
