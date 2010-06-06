@@ -132,7 +132,7 @@ def test_keepalive():
                 for tweet in stream:
                     pass
             except ConnectionError:
-                assert stream.count == 3
+                assert stream.count == 3, "Got %s, wanted 3" % stream.count
             else:
                 assert False, "Didn't handle keepalive"
 

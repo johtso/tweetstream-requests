@@ -182,7 +182,6 @@ class TweetStream(object):
                 return data
 
             except ValueError, e:
-                print e
                 self.close()
                 raise ConnectionError("Got invalid data from twitter", details=data)
 
