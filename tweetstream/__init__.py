@@ -24,10 +24,14 @@ import anyjson
 
 """
 
-URLS = {"firehose": "http://stream.twitter.com/1/statuses/firehose.json",
+URLS = {
+        "firehose": "http://stream.twitter.com/1/statuses/firehose.json",
         "sample": "http://stream.twitter.com/1/statuses/sample.json",
         "follow": "http://stream.twitter.com/1/statuses/filter.json",
-        "track": "http://stream.twitter.com/1/statuses/filter.json"}
+        "track": "http://stream.twitter.com/1/statuses/filter.json",
+        "locations": "http://stream.twitter.com/1/statuses/filter.json"
+        }
+
 
 USER_AGENT = "TweetStream %s" % __version__
 
@@ -35,6 +39,7 @@ USER_AGENT = "TweetStream %s" % __version__
 class TweetStreamError(Exception):
     """Base class for all tweetstream errors"""
     pass
+
 
 class AuthenticationError(TweetStreamError):
     """Exception raised if the username/password is not accepted
@@ -109,7 +114,7 @@ class TweetStream(object):
         self._username = username
         self._password = password
 
-        self.rate_period = 10 # in seconds
+        self.rate_period = 10  # in seconds
         self.connected = False
         self.starttime = None
         self.count = 0
@@ -145,7 +150,7 @@ class TweetStream(object):
                 raise AuthenticationError("Access denied")
             elif exception.code == 404:
                 raise ConnectionError("URL not found: %s" % self.url)
-            else: # re raise. No idea what would cause this, so want to know
+            else:  # re raise. No idea what would cause this, so want to know
                 raise
         except urllib2.URLError, exception:
             raise ConnectionError(exception.reason)
@@ -176,7 +181,7 @@ class TweetStream(object):
                     self._rate_ts = time.time()
 
                 data = self._conn.readline()
-                if data == "": # something is wrong
+                if data == "":  # something is wrong
                     self.close()
                     raise ConnectionError("Got entry of length 0. Disconnected")
                 elif data.isspace():
@@ -189,12 +194,12 @@ class TweetStream(object):
 
             except ValueError, e:
                 self.close()
-                raise ConnectionError("Got invalid data from twitter", details=data)
+                raise ConnectionError("Got invalid data from twitter",
+                                      details=data)
 
             except socket.error, e:
                 self.close()
                 raise ConnectionError("Server disconnected")
-
 
     def close(self):
         """
@@ -253,6 +258,7 @@ class ReconnectingTweetStream(TweetStream):
         # Don't listen to auth error, since we can't reasonably reconnect
         # when we get one.
 
+
 class FollowStream(TweetStream):
     """Stream class for getting tweets from followers.
 
@@ -270,6 +276,7 @@ class FollowStream(TweetStream):
 
     def __init__(self, user, password, followees, url="follow", **kwargs):
         self.followees = followees
+
         TweetStream.__init__(self, user, password, url=url, **kwargs)
 
     def _get_post_data(self):
@@ -295,3 +302,26 @@ class TrackStream(TweetStream):
 
     def _get_post_data(self):
         return urllib.urlencode({"track": ",".join(self.keywords)})
+
+
+class LocationStream(TweetStream):
+    """Stream class for getting tweets relevant to keywords.
+
+       :param user: See TweetStream
+
+       :param password: See TweetStream
+
+       :param locations: Iterable containing locations to look for. Each
+         location should be a string representing coordinates for a
+         bounding box.
+
+       :keyword url: Like the url argument to TweetStream, except default
+         value is the "track" endpoint.
+    """
+
+    def __init__(self, user, password, locations, url="locations", **kwargs):
+        self.keywords = keywords
+        TweetStream.__init__(self, user, password, url=url, **kwargs)
+
+    def _get_post_data(self):
+        return urllib.urlencode({"locations": ",".join(self.locations)})
