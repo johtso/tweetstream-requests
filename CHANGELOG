@@ -42,3 +42,7 @@
  - Removed a spurious print statement left over from debugging
  - Introduced common base class for all tweetstream exceptions
  - Make sure we raise a sensible error on 404. Include url in desc of that error
+
+0.3.6
+
+ - Added LocationStream class for filtering on location bounding boxes.
