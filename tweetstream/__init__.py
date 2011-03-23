@@ -229,17 +229,22 @@ class FilterStream(BaseStream):
         return postdata
 
 
-class FollowStream(FilterStream):
+class DeprecatedStream(FilterStream):
+    def __init__(self, *args, **kwargs):
+        import warnings
+        warnings.warn("%s is deprecated. Use FilterStream instead" % self.__class__.__name__, DeprecationWarning)
+
+class FollowStream(DeprecatedStream):
     def __init__(self, username, password, follow, **kwargs):
         FilterStream.__init__(self, username, password, follow=follow, **kwargs)
 
 
-class TrackStream(FilterStream):
+class TrackStream(DeprecatedStream):
     def __init__(self, username, password, track, **kwargs):
         FilterStream.__init__(self, username, password, track=track, **kwargs)
 
 
-class LocationStream(FilterStream):
+class LocationStream(DeprecatedStream):
     def __init__(self, username, password, location, **kwargs):
         FilterStream.__init__(self, username, password, location=location, **kwargs)
 
