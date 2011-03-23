@@ -14,24 +14,10 @@ import anyjson
 
 
 """
- .. data:: URLS
-
-     Mapping between twitter endpoint names and URLs.
-
  .. data:: USER_AGENT
 
      The default user agent string for stream objects
-
 """
-
-URLS = {
-        "firehose": "http://stream.twitter.com/1/statuses/firehose.json",
-        "sample": "http://stream.twitter.com/1/statuses/sample.json",
-        "follow": "http://stream.twitter.com/1/statuses/filter.json",
-        "track": "http://stream.twitter.com/1/statuses/filter.json",
-        "locations": "http://stream.twitter.com/1/statuses/filter.json"
-        }
-
 
 USER_AGENT = "TweetStream %s" % __version__
 
@@ -42,8 +28,7 @@ class TweetStreamError(Exception):
 
 
 class AuthenticationError(TweetStreamError):
-    """Exception raised if the username/password is not accepted
-    """
+    """Exception raised if the username/password is not accepted"""
     pass
 
 
@@ -59,15 +44,15 @@ class ConnectionError(TweetStreamError):
         return '<ConnectionError %s>' % self.reason
 
 
-class TweetStream(object):
+class BaseStream(object):
     """A network connection to Twitters streaming API
 
     :param username: Twitter username for the account accessing the API.
     :param password: Twitter password for the account accessing the API.
-
-    :keyword url: URL to connect to. This can be either an endopoint name,
-     such as "sample", or a full URL. By default, the public "sample" url
-     is used. All known endpoints are defined in the :URLS: attribute
+    :keyword count: Number of tweets from the past to get before switching to
+      live stream.
+    :keyword url: Endpoint URL for the object. Note: you should not
+      need to edit this. It's present to make testing easier.
 
     .. attribute:: connected
 
@@ -82,7 +67,7 @@ class TweetStream(object):
         The timestamp, in seconds since the epoch, the object connected to the
         streaming api.
 
-    .. attribute:: count
+    .. attribute:: catchup
 
         The number of tweets that have been returned by the object.
 
@@ -105,14 +90,15 @@ class TweetStream(object):
         not be changed after the connection has been made. This property must
         thus be set before accessing the iterator. The default is set in
         :attr: `USER_AGENT`.
-"""
+    """
 
-    def __init__(self, username, password, url="sample"):
+    def __init__(self, username, password, catchup=None, url=None):
         self._conn = None
         self._rate_ts = None
         self._rate_cnt = 0
         self._username = username
         self._password = password
+        self._catchup_count = catchup
 
         self.rate_period = 10  # in seconds
         self.connected = False
@@ -120,7 +106,7 @@ class TweetStream(object):
         self.count = 0
         self.rate = 0
         self.user_agent = USER_AGENT
-        self.url = URLS.get(url, url)
+        if url: self.url = url
 
     def __iter__(self):
         return self
@@ -135,11 +121,16 @@ class TweetStream(object):
     def _init_conn(self):
         """Open the connection to the twitter server"""
         headers = {'User-Agent': self.user_agent}
-        req = urllib2.Request(self.url, self._get_post_data(), headers)
+
+        postdata = self._get_post_data() or {}
+        if self._catchup_count:
+            postdata["count"] = self._catchup_count
+
+        poststring = urllib.urlencode(postdata) if postdata else None
+        req = urllib2.Request(self.url, poststring, headers)
 
         password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        password_mgr.add_password(None, self.url, self._username,
-                                  self._password)
+        password_mgr.add_password(None, self.url, self._username, self._password)
         handler = urllib2.HTTPBasicAuthHandler(password_mgr)
         opener = urllib2.build_opener(handler)
 
@@ -210,6 +201,49 @@ class TweetStream(object):
             self._conn.close()
 
 
+class SampleStream(BaseStream):
+    url = "http://stream.twitter.com/1/statuses/sample.json"
+
+
+class TweetStream(SampleStream):
+    def __init__(self, *args, **kwargs):
+        # warn about deprecation
+        SampleStream.__init__(self, *args, **kwargs)
+
+
+class FilterStream(BaseStream):
+    url = "http://stream.twitter.com/1/statuses/filter.json"
+
+    def __init__(self, username, password, follow=None, locations=None,
+                 track=None, **kwargs):
+        self._follow = follow
+        self._locations = locations
+        self._track = track
+        BaseStream.__init__(self, username, password, **kwargs)
+
+    def _get_post_data(self):
+        postdata = {}
+        if self._follow: postdata["follow"] = ",".join([str(e) for e in self._follow])
+        if self._locations: postdata["locations"] = ",".join(self._locations)
+        if self._track: postdata["track"] = ",".join(self._track)
+        return postdata
+
+
+class FollowStream(FilterStream):
+    def __init__(self, username, password, follow, **kwargs):
+        FilterStream.__init__(self, username, password, follow=follow, **kwargs)
+
+
+class TrackStream(FilterStream):
+    def __init__(self, username, password, track, **kwargs):
+        FilterStream.__init__(self, username, password, track=track, **kwargs)
+
+
+class LocationStream(FilterStream):
+    def __init__(self, username, password, location, **kwargs):
+        FilterStream.__init__(self, username, password, location=location, **kwargs)
+
+
 class ReconnectingTweetStream(TweetStream):
     """TweetStream class that automatically tries to reconnect if the
     connecting goes down. Reconnecting, and waiting for reconnecting, is
@@ -257,71 +291,3 @@ class ReconnectingTweetStream(TweetStream):
                 time.sleep(self.retry_wait)
         # Don't listen to auth error, since we can't reasonably reconnect
         # when we get one.
-
-
-class FollowStream(TweetStream):
-    """Stream class for getting tweets from followers.
-
-        :param user: See TweetStream
-
-        :param password: See TweetStream
-
-        :param followees: Iterable containing user IDs to follow.
-          ***Note:*** the user id in question is the numeric ID twitter uses,
-          not the normal username.
-
-        :keyword url: Like the url argument to TweetStream, except default
-          value is the "follow" endpoint.
-    """
-
-    def __init__(self, user, password, followees, url="follow", **kwargs):
-        self.followees = followees
-
-        TweetStream.__init__(self, user, password, url=url, **kwargs)
-
-    def _get_post_data(self):
-        return urllib.urlencode({"follow": ",".join(map(str, self.followees))})
-
-
-class TrackStream(TweetStream):
-    """Stream class for getting tweets relevant to keywords.
-
-        :param user: See TweetStream
-
-        :param password: See TweetStream
-
-        :param keywords: Iterable containing keywords to look for
-
-        :keyword url: Like the url argument to TweetStream, except default
-          value is the "track" endpoint.
-    """
-
-    def __init__(self, user, password, keywords, url="track", **kwargs):
-        self.keywords = keywords
-        TweetStream.__init__(self, user, password, url=url, **kwargs)
-
-    def _get_post_data(self):
-        return urllib.urlencode({"track": ",".join(self.keywords)})
-
-
-class LocationStream(TweetStream):
-    """Stream class for getting tweets relevant to keywords.
-
-       :param user: See TweetStream
-
-       :param password: See TweetStream
-
-       :param locations: Iterable containing locations to look for. Each
-         location should be a string representing coordinates for a
-         bounding box.
-
-       :keyword url: Like the url argument to TweetStream, except default
-         value is the "track" endpoint.
-    """
-
-    def __init__(self, user, password, locations, url="locations", **kwargs):
-        self.keywords = keywords
-        TweetStream.__init__(self, user, password, url=url, **kwargs)
-
-    def _get_post_data(self):
-        return urllib.urlencode({"locations": ",".join(self.locations)})
