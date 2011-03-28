@@ -67,7 +67,7 @@ class BaseStream(object):
         The timestamp, in seconds since the epoch, the object connected to the
         streaming api.
 
-    .. attribute:: catchup
+    .. attribute:: count
 
         The number of tweets that have been returned by the object.
 
@@ -215,11 +215,12 @@ class FilterStream(BaseStream):
     url = "http://stream.twitter.com/1/statuses/filter.json"
 
     def __init__(self, username, password, follow=None, locations=None,
-                 track=None, **kwargs):
+                 track=None, catchup=None, url=None):
         self._follow = follow
         self._locations = locations
         self._track = track
-        BaseStream.__init__(self, username, password, **kwargs)
+        # remove follow, locations, track
+        BaseStream.__init__(self, username, password, url=url)
 
     def _get_post_data(self):
         postdata = {}
@@ -232,21 +233,23 @@ class FilterStream(BaseStream):
 class DeprecatedStream(FilterStream):
     def __init__(self, *args, **kwargs):
         import warnings
-        warnings.warn("%s is deprecated. Use FilterStream instead" % self.__class__.__name__, DeprecationWarning)
+        #warnings.warn("%s is deprecated. Use FilterStream instead" % self.__class__.__name__, DeprecationWarning)
+        super(DeprecatedStream, self).__init__(*args, **kwargs)
+
 
 class FollowStream(DeprecatedStream):
-    def __init__(self, username, password, follow, **kwargs):
-        FilterStream.__init__(self, username, password, follow=follow, **kwargs)
+    def __init__(self, username, password, follow, catchup=None, url=None):
+        super(FollowStream, self).__init__(username, password, follow=follow, catchup=catchup, url=url)
 
 
 class TrackStream(DeprecatedStream):
-    def __init__(self, username, password, track, **kwargs):
-        FilterStream.__init__(self, username, password, track=track, **kwargs)
+    def __init__(self, username, password, track, catchup=None, url=None):
+        super(TrackStream, self).__init__(username, password, track=track, catchup=catchup, url=url)
 
 
 class LocationStream(DeprecatedStream):
-    def __init__(self, username, password, location, **kwargs):
-        FilterStream.__init__(self, username, password, location=location, **kwargs)
+    def d__init__(self, username, password, locations, catchup=None, url=None):
+        super(LocationStream, self).__init__(username, password, locations=locations, catchup=catchup, url=url)
 
 
 class ReconnectingTweetStream(TweetStream):
