@@ -3,7 +3,7 @@ import sys, os
 
 author = "Rune Halvorsen" 
 email = "runefh@gmail.com"
-version = "0.3.6"
+version = "1.0.0"
 homepage = "http://bitbucket.org/runeh/tweetstream/"
 
 setup(name='tweetstream',
