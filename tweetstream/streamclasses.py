@@ -141,8 +141,9 @@ class BaseStream(object):
                     continue
 
                 data = anyjson.deserialize(data)
-                self.count += 1
-                self._rate_cnt += 1
+                if 'text' in data:
+                    self.count += 1
+                    self._rate_cnt += 1
                 return data
 
             except ValueError, e:
