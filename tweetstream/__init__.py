@@ -233,7 +233,7 @@ class FilterStream(BaseStream):
 class DeprecatedStream(FilterStream):
     def __init__(self, *args, **kwargs):
         import warnings
-        #warnings.warn("%s is deprecated. Use FilterStream instead" % self.__class__.__name__, DeprecationWarning)
+        warnings.warn("%s is deprecated. Use FilterStream instead" % self.__class__.__name__, DeprecationWarning)
         super(DeprecatedStream, self).__init__(*args, **kwargs)
 
 
