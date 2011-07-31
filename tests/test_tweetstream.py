@@ -42,8 +42,10 @@ def test_bad_auth(cls, args, kwargs):
     def auth_denied(request):
         request.send_error(401)
 
-    with test_server(handler=auth_denied, methods=("post", "get"), port="random") as server:
-        stream = cls("user", "passwd", *args, url=server.baseurl)
+    with raises(AuthenticationError):
+        with test_server(handler=auth_denied, methods=("post", "get"), port="random") as server:
+            stream = cls("user", "passwd", *args, url=server.baseurl)
+            for e in stream: pass
 
 
 @parameterized(streamtypes)
@@ -53,8 +55,10 @@ def test_404_url(cls, args, kwargs):
     def not_found(request):
         request.send_error(404)
 
-    with test_server(handler=not_found, methods=("post", "get"), port="random") as server:
-        stream = cls("user", "passwd", *args, url=server.baseurl)
+    with raises(ConnectionError):
+        with test_server(handler=not_found, methods=("post", "get"), port="random") as server:
+            stream = cls("user", "passwd", *args, url=server.baseurl)
+            for e in stream: pass
 
 
 @parameterized(streamtypes)
