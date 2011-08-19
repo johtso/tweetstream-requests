@@ -172,7 +172,7 @@ def test_buffering(cls, args, kwargs):
 
 
     with test_server(handler=tweetsource, methods=("post", "get"), port="random") as server:
-        stream = cls("foo", "bar", *args, url=server.baseurl)
+        stream = cls("foo", "bar", *args, url=server.baseurl, slow=True)
         start = time.time()
         stream.next()
         first = time.time()

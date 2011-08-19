@@ -54,13 +54,14 @@ class BaseStream(object):
         :attr: `USER_AGENT`.
     """
 
-    def __init__(self, username, password, catchup=None, url=None):
+    def __init__(self, username, password, catchup=None, url=None, slow=False):
         self._conn = None
         self._rate_ts = None
         self._rate_cnt = 0
         self._username = username
         self._password = password
         self._catchup_count = catchup
+        self._slow = slow
 
         self.rate_period = 10  # in seconds
         self.connected = False
@@ -133,7 +134,11 @@ class BaseStream(object):
                     self._rate_cnt = 0
                     self._rate_ts = time.time()
 
-                data = self._conn.readline()
+                if self._slow:
+                    data = self._readline_slow()
+                else:
+                    data = self._readline_fast()
+
                 if data == "":  # something is wrong
                     self.close()
                     raise ConnectionError("Got entry of length 0. Disconnected")
@@ -155,6 +160,19 @@ class BaseStream(object):
                 self.close()
                 raise ConnectionError("Server disconnected")
 
+    def _readline_fast(self):
+        return self._conn.readline()
+
+    def _readline_slow(self):
+        data = ""
+        while 1:
+            byte = self._conn.read(1)
+            data += byte
+            if byte == "":
+                return byte
+            elif byte == "\n":
+                return data
+
     def close(self):
         """
         Close the connection to the streaming server.
@@ -172,12 +190,12 @@ class FilterStream(BaseStream):
     url = "http://stream.twitter.com/1/statuses/filter.json"
 
     def __init__(self, username, password, follow=None, locations=None,
-                 track=None, catchup=None, url=None):
+                 track=None, catchup=None, url=None, slow=False):
         self._follow = follow
         self._locations = locations
         self._track = track
         # remove follow, locations, track
-        BaseStream.__init__(self, username, password, url=url)
+        BaseStream.__init__(self, username, password, url=url, slow=slow)
 
     def _get_post_data(self):
         postdata = {}
