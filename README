@@ -74,6 +74,25 @@ of twitter user IDs. The IDs are userid ints, not the screen names.
 ...         print "Got interesting tweet:", tweet
 
 
+Slow streams
+------------
+
+By default the library reads complete lines from the socket connection. The url
+library optimizes this by reading chunks into a buffer, and only looking for full
+lines when the buffer is full.
+
+The result of this is that with low volume streams, there will be 2 or 3 buffered
+tweets before we get them. This means that even though a tweet that matches
+our spec has arrived from the socket, we wont get it until a few more arrive.
+
+This behaviour is not acceptable in a number of cases. To disable this behaviour,
+use the keyword argument "slow":
+
+>>> stream = SamplStream(usrername, password, slow=True)
+
+When the slow flag is set, we read byte by byte from the socket. The performance 
+of this is probably a lot worse than with the fast method.
+
 Deprecated classes
 ------------------
 
