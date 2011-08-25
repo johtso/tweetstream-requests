@@ -38,5 +38,5 @@ class ConnectionError(TweetStreamError):
         return '<ConnectionError %s>' % self.reason
 
 
-from streamclasses import SampleStream, FilterStream
-from deprecated import FollowStream, TrackStream, LocationStream, TweetStream, ReconnectingTweetStream
+from .streamclasses import SampleStream, FilterStream
+from .deprecated import FollowStream, TrackStream, LocationStream, TweetStream, ReconnectingTweetStream
