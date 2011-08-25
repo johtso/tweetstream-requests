@@ -2,6 +2,7 @@ import time
 import urllib
 import urllib2
 import socket
+from socket import fromfd, AF_INET, SOCK_STREAM
 import anyjson
 
 from . import AuthenticationError, ConnectionError, USER_AGENT
@@ -54,14 +55,14 @@ class BaseStream(object):
         :attr: `USER_AGENT`.
     """
 
-    def __init__(self, username, password, catchup=None, url=None, slow=False):
+    def __init__(self, username, password, catchup=None, url=None):
         self._conn = None
         self._rate_ts = None
         self._rate_cnt = 0
         self._username = username
         self._password = password
         self._catchup_count = catchup
-        self._slow = slow
+        self._iter = self.__iter__()
 
         self.rate_period = 10  # in seconds
         self.connected = False
@@ -70,9 +71,6 @@ class BaseStream(object):
         self.rate = 0
         self.user_agent = USER_AGENT
         if url: self.url = url
-
-    def __iter__(self):
-        return self
 
     def __enter__(self):
         return self
@@ -99,6 +97,7 @@ class BaseStream(object):
 
         try:
             self._conn = opener.open(req)
+
         except urllib2.HTTPError, exception:
             if exception.code == 401:
                 raise AuthenticationError("Access denied")
@@ -108,6 +107,13 @@ class BaseStream(object):
                 raise
         except urllib2.URLError, exception:
             raise ConnectionError(exception.reason)
+
+        try:
+            # works in 2.7.1+ . See http://bugs.python.org/issue1327971
+            self._socket = fromfd(self._conn.fp.fileno(), AF_INET, SOCK_STREAM)
+        except AttributeError:
+            # Should work everywhere else but means accessing privates.
+            self._socket = fromfd(self._conn.fp._sock.fp.fileno(), AF_INET, SOCK_STREAM)
 
         self.connected = True
         if not self.starttime:
@@ -121,57 +127,55 @@ class BaseStream(object):
         returned by urllib.urlencode."""
         return None
 
-    def next(self):
-        """Return the next available tweet. This call is blocking!"""
+    def _update_rate(self):
+        rate_time = time.time() - self._rate_ts
+        if not self._rate_ts or rate_time > self.rate_period:
+            self.rate = self._rate_cnt / rate_time
+            self._rate_cnt = 0
+            self._rate_ts = time.time()
+
+    def __iter__(self):
+        buf = ""
         while True:
             try:
                 if not self.connected:
                     self._init_conn()
 
-                rate_time = time.time() - self._rate_ts
-                if not self._rate_ts or rate_time > self.rate_period:
-                    self.rate = self._rate_cnt / rate_time
-                    self._rate_cnt = 0
-                    self._rate_ts = time.time()
-
-                if self._slow:
-                    data = self._readline_slow()
-                else:
-                    data = self._readline_fast()
-
-                if data == "":  # something is wrong
+                buf += self._socket.recv(8192)
+                if buf == "":  # something is wrong
                     self.close()
                     raise ConnectionError("Got entry of length 0. Disconnected")
-                elif data.isspace():
+                elif buf.isspace():
+                    buf = ""
+                elif "\r" not in buf: # not enough data yet. Loop around
                     continue
 
-                data = anyjson.deserialize(data)
-                if 'text' in data:
-                    self.count += 1
-                    self._rate_cnt += 1
-                return data
+                lines = buf.split("\r")
+                buf = lines[-1]
+                lines = lines[:-1]
 
-            except ValueError, e:
-                self.close()
-                raise ConnectionError("Got invalid data from twitter",
-                                      details=data)
+                for line in lines:
+                    try:
+                        tweet = anyjson.deserialize(line)
+                    except ValueError, e:
+                        self.close()
+                        raise ConnectionError("Got invalid data from twitter", details=line)
+
+                    if 'text' in tweet:
+                        self.count += 1
+                        self._rate_cnt += 1
+                    yield tweet
+
 
             except socket.error, e:
                 self.close()
                 raise ConnectionError("Server disconnected")
 
-    def _readline_fast(self):
-        return self._conn.readline()
 
-    def _readline_slow(self):
-        data = ""
-        while 1:
-            byte = self._conn.read(1)
-            data += byte
-            if byte == "":
-                return byte
-            elif byte == "\n":
-                return data
+    def next(self):
+        """Return the next available tweet. This call is blocking!"""
+        return self._iter.next()
+
 
     def close(self):
         """
@@ -190,12 +194,12 @@ class FilterStream(BaseStream):
     url = "http://stream.twitter.com/1/statuses/filter.json"
 
     def __init__(self, username, password, follow=None, locations=None,
-                 track=None, catchup=None, url=None, slow=False):
+                 track=None, catchup=None, url=None):
         self._follow = follow
         self._locations = locations
         self._track = track
         # remove follow, locations, track
-        BaseStream.__init__(self, username, password, url=url, slow=slow)
+        BaseStream.__init__(self, username, password, url=url)
 
     def _get_post_data(self):
         postdata = {}
