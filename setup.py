@@ -1,10 +1,18 @@
-from setuptools import setup, find_packages
+try:
+    from setuptools import setup, find_packages
+except ImportError:
+    from distutils.core import setup, find_packages
+
 import sys, os
 
 author = "Rune Halvorsen" 
 email = "runefh@gmail.com"
 version = "1.0.0"
 homepage = "http://bitbucket.org/runeh/tweetstream/"
+
+extra = {}
+if sys.version_info >= (3, 0):
+    extra.update(use_2to3=True)
 
 setup(name='tweetstream',
     version=version,
@@ -24,4 +32,5 @@ setup(name='tweetstream',
     zip_safe=False,
     platforms=["any"],
     install_requires = ['anyjson'],
+    **extra
 )
