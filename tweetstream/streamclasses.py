@@ -3,6 +3,7 @@ import urllib
 import urllib2
 import socket
 from socket import fromfd, AF_INET, SOCK_STREAM
+from platform import python_version_tuple
 import anyjson
 
 from . import AuthenticationError, ConnectionError, USER_AGENT
@@ -117,7 +118,20 @@ class BaseStream(object):
         # until the buffer was full. That's problematic for very low volume
         # filterstreams, since you might not see a tweet for minutes or hours
         # after they occured while the buffer fills.
-        self._socket = self._conn.fp._sock.fp._sock
+        #
+        # Oh, and the inards of the http libs are different things on in
+        # py2 and 3, so need to deal with that. py3 libs do more of what I
+        # want by default, but I wont do more special casing for it than
+        # neccessary.
+
+        major, _, _ = python_version_tuple()
+        if major == "2":
+            self._socket = self._conn.fp._sock.fp._sock
+        else:
+            self._socket = self._conn.fp.raw
+            # our code that reads from the socket expects a method called recv.
+            # py3 socket.SocketIO uses the name read, so alias it.
+            self._socket.recv = self._socket.read
 
         self.connected = True
         if not self.starttime:
@@ -139,26 +153,27 @@ class BaseStream(object):
             self._rate_ts = time.time()
 
     def __iter__(self):
-        buf = ""
+        buf = b""
         while True:
             try:
                 if not self.connected:
                     self._init_conn()
 
                 buf += self._socket.recv(8192)
-                if buf == "":  # something is wrong
+                if buf == b"":  # something is wrong
                     self.close()
                     raise ConnectionError("Got entry of length 0. Disconnected")
                 elif buf.isspace():
-                    buf = ""
-                elif "\r" not in buf: # not enough data yet. Loop around
+                    buf = b""
+                elif b"\r" not in buf: # not enough data yet. Loop around
                     continue
 
-                lines = buf.split("\r")
+                lines = buf.split(b"\r")
                 buf = lines[-1]
                 lines = lines[:-1]
 
                 for line in lines:
+                    line = line.decode("utf8")
                     try:
                         tweet = anyjson.deserialize(line)
                     except ValueError, e:
