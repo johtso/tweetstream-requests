@@ -108,12 +108,16 @@ class BaseStream(object):
         except urllib2.URLError, exception:
             raise ConnectionError(exception.reason)
 
-        try:
-            # works in 2.7.1+ . See http://bugs.python.org/issue1327971
-            self._socket = fromfd(self._conn.fp.fileno(), AF_INET, SOCK_STREAM)
-        except AttributeError:
-            # Should work everywhere else but means accessing privates.
-            self._socket = fromfd(self._conn.fp._sock.fp.fileno(), AF_INET, SOCK_STREAM)
+        # This is horrible. This line grabs the raw socket (actually an ssl
+        # wrapped socket) from the guts of urllib2/httplib. We want the raw
+        # socket so we can bypass the buffering that those libs provide.
+        # The buffering is reasonable when dealing with connections that
+        # try to finish as soon as possible. With twitters' never ending
+        # connections, it causes a bug where we would not deliver tweets
+        # until the buffer was full. That's problematic for very low volume
+        # filterstreams, since you might not see a tweet for minutes or hours
+        # after they occured while the buffer fills.
+        self._socket = self._conn.fp._sock.fp._sock
 
         self.connected = True
         if not self.starttime:
@@ -187,11 +191,11 @@ class BaseStream(object):
 
 
 class SampleStream(BaseStream):
-    url = "http://stream.twitter.com/1/statuses/sample.json"
+    url = "https://stream.twitter.com/1/statuses/sample.json"
 
 
 class FilterStream(BaseStream):
-    url = "http://stream.twitter.com/1/statuses/filter.json"
+    url = "https://stream.twitter.com/1/statuses/filter.json"
 
     def __init__(self, username, password, follow=None, locations=None,
                  track=None, catchup=None, url=None):
