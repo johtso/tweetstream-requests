@@ -1,7 +1,7 @@
 """
 Simple Twitter streaming API access
 """
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "Rune Halvorsen <runefh@gmail.com>"
 __homepage__ = "http://bitbucket.org/runeh/tweetstream/"
 __docformat__ = "restructuredtext"

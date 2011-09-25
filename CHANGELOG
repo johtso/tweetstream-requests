@@ -52,3 +52,12 @@
  - Changed API to match latest twitter endpoints. This adds SampleStream and
    FilterStream and deprecates TweetStream, FollowStream, LocationStream,
    TrackStream and ReconnectingTweetStream.
+
+1.1.0
+
+ - Fixed issues #2 and #12, related to low volume streams not yielding tweets
+   until a relatively large buffer was filled. This meant that tweets would
+   arrive in bunches, not immediatly.
+ - Switched to HTTPS urls for streams. Twitter will switch off HTTP streams
+   on 29. sept. 2011.
+ - Added support for Python 3

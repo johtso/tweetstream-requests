@@ -7,12 +7,15 @@ import sys, os
 
 author = "Rune Halvorsen" 
 email = "runefh@gmail.com"
-version = "1.0.0"
+version = "1.1.0"
 homepage = "http://bitbucket.org/runeh/tweetstream/"
 
 extra = {}
 if sys.version_info >= (3, 0):
     extra.update(use_2to3=True)
+
+
+
 
 setup(name='tweetstream',
     version=version,
@@ -21,6 +24,10 @@ setup(name='tweetstream',
     classifiers=[
         'License :: OSI Approved :: BSD License',
         'Intended Audience :: Developers',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.1',
     ],
     keywords='twitter',
     author=author,
