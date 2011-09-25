@@ -4,5 +4,6 @@ syntax: glob
 *~
 env
 dist
+build
 .tox
 tweetstream.egg-info
