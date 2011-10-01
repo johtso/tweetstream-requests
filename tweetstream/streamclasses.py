@@ -2,7 +2,6 @@ import time
 import urllib
 import urllib2
 import socket
-from socket import fromfd, AF_INET, SOCK_STREAM
 from platform import python_version_tuple
 import anyjson
 
