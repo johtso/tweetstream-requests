@@ -61,3 +61,8 @@
  - Switched to HTTPS urls for streams. Twitter will switch off HTTP streams
    on 29. sept. 2011.
  - Added support for Python 3
+
+1.1.1
+
+ - Fixed issue #16. Odd case where python_version_tuple was returning ints
+   rather than the strings the docs promis. Make sure we always cast to int.

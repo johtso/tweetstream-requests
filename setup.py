@@ -7,7 +7,7 @@ import sys, os
 
 author = "Rune Halvorsen" 
 email = "runefh@gmail.com"
-version = "1.1.0"
+version = "1.1.1"
 homepage = "http://bitbucket.org/runeh/tweetstream/"
 
 extra = {}
