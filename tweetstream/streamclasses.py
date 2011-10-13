@@ -124,7 +124,13 @@ class BaseStream(object):
         # neccessary.
 
         major, _, _ = python_version_tuple()
-        if major == "2":
+        # The cast is needed because apparently some versions return strings
+        # and some return ints.
+        # On my ubuntu with stock 2.6 I get strings, which match the docs.
+        # Someone reported the issue on 2.6.1 on macos, but that was
+        # manually built, not the bundled one. Anyway, cast for safety.
+        major = int(major)
+        if major == 2:
             self._socket = self._conn.fp._sock.fp._sock
         else:
             self._socket = self._conn.fp.raw
