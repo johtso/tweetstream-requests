@@ -14,6 +14,9 @@ class BaseStream(object):
     :param password: Twitter password for the account accessing the API.
     :keyword count: Number of tweets from the past to get before switching to
       live stream.
+    :keyword raw: If True, return each tweet's raw data direct from the socket,
+      without UTF8 decoding or parsing, rather than a parsed object. The
+      default is False.
     :keyword url: Endpoint URL for the object. Note: you should not
       need to edit this. It's present to make testing easier.
 
@@ -55,13 +58,14 @@ class BaseStream(object):
         :attr: `USER_AGENT`.
     """
 
-    def __init__(self, username, password, catchup=None, url=None):
+    def __init__(self, username, password, catchup=None, raw=False, url=None):
         self._conn = None
         self._rate_ts = None
         self._rate_cnt = 0
         self._username = username
         self._password = password
         self._catchup_count = catchup
+        self._raw_mode = raw
         self._iter = self.__iter__()
 
         self.rate_period = 10  # in seconds
@@ -178,12 +182,15 @@ class BaseStream(object):
                 lines = lines[:-1]
 
                 for line in lines:
-                    line = line.decode("utf8")
-                    try:
-                        tweet = anyjson.deserialize(line)
-                    except ValueError, e:
-                        self.close()
-                        raise ConnectionError("Got invalid data from twitter", details=line)
+                    if (self._raw_mode):
+                        tweet = line
+                    else:
+                        line = line.decode("utf8")
+                        try:
+                            tweet = anyjson.deserialize(line)
+                        except ValueError, e:
+                            self.close()
+                            raise ConnectionError("Got invalid data from twitter", details=line)
 
                     if 'text' in tweet:
                         self.count += 1
