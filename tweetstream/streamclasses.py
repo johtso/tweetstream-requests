@@ -17,6 +17,11 @@ class BaseStream(object):
     :keyword raw: If True, return each tweet's raw data direct from the socket,
       without UTF8 decoding or parsing, rather than a parsed object. The
       default is False.
+    :keyword timeout: If non-None, set a timeout in seconds on the receiving
+      socket. Certain types of network problems (e.g., disconnecting a VPN)
+      can cause the connection to hang, leading to indefinite blocking that
+      requires kill -9 to resolve. Setting a timeout leads to an orderly
+      shutdown in these cases. The default is None (i.e., no timeout).
     :keyword url: Endpoint URL for the object. Note: you should not
       need to edit this. It's present to make testing easier.
 
@@ -58,7 +63,8 @@ class BaseStream(object):
         :attr: `USER_AGENT`.
     """
 
-    def __init__(self, username, password, catchup=None, raw=False, url=None):
+    def __init__(self, username, password,
+                 catchup=None, raw=False, timeout=None, url=None):
         self._conn = None
         self._rate_ts = None
         self._rate_cnt = 0
@@ -66,6 +72,7 @@ class BaseStream(object):
         self._password = password
         self._catchup_count = catchup
         self._raw_mode = raw
+        self._timeout = timeout
         self._iter = self.__iter__()
 
         self.rate_period = 10  # in seconds
@@ -100,7 +107,7 @@ class BaseStream(object):
         opener = urllib2.build_opener(handler)
 
         try:
-            self._conn = opener.open(req)
+            self._conn = opener.open(req, timeout=self._timeout)
 
         except urllib2.HTTPError, exception:
             if exception.code == 401:
