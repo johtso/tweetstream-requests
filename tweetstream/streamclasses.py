@@ -6,6 +6,7 @@ from platform import python_version_tuple
 import anyjson
 
 from . import AuthenticationError, ConnectionError, USER_AGENT
+from . import ReconnectImmediatelyError, ReconnectLinearlyError, ReconnectExponentiallyError
 
 class BaseStream(object):
     """A network connection to Twitters streaming API
@@ -207,7 +208,7 @@ class BaseStream(object):
 
             except socket.error, e:
                 self.close()
-                raise ConnectionError("Server disconnected")
+                raise ReconnectImmediatelyError("Server disconnected")
 
 
     def next(self):
