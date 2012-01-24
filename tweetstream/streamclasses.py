@@ -107,19 +107,19 @@ class BaseStream(object):
         handler = urllib2.HTTPBasicAuthHandler(password_mgr)
         opener = urllib2.build_opener(handler)
 
+        # If connecting fails, convert to ReconnectExponentiallyError so
+        # clients can implement appropriate backoff.
         try:
             self._conn = opener.open(req, timeout=self._timeout)
-
-        except urllib2.HTTPError, exception:
-            if exception.code == 401:
+        except urllib2.HTTPError, x:
+            if x.code == 401:
                 raise AuthenticationError("Access denied")
-            elif exception.code == 404:
-                raise ReconnectExponentiallyError("URL not found: %s" % self.url)
-            else:  # re raise. No idea what would cause this, so want to know
-                # FIXME: perhaps wrap in one of the reconnectable error classes?
-                raise
-        except urllib2.URLError, exception:
-            raise ReconnectExponentiallyError(exception.reason)
+            elif x.code == 404:
+                raise ReconnectExponentiallyError("%s: %s" % (strself.url))
+            else:
+                raise ReconnectExponentiallyError(str(x))
+        except urllib2.URLError, x:
+            raise ReconnectExponentiallyError(str(x))
 
         # This is horrible. This line grabs the raw socket (actually an ssl
         # wrapped socket) from the guts of urllib2/httplib. We want the raw
