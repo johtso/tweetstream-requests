@@ -24,11 +24,6 @@ class TweetStreamError(Exception):
     pass
 
 
-class AuthenticationError(TweetStreamError):
-    """Exception raised if the username/password is not accepted"""
-    pass
-
-
 class ConnectionError(TweetStreamError):
     """Raised when there are network problems. This means when there are
     dns errors, network errors, twitter issues"""
@@ -71,6 +66,13 @@ class ReconnectExponentiallyError(ReconnectError):
     is probably a client configuration issue that is unlikely to be resolved
     without human intervention."'''
     pass
-    
+
+
+# Parent class per Twitter error handling guidance noted above.
+class AuthenticationError(ReconnectExponentiallyError):
+    """Exception raised if the username/password is not accepted"""
+    pass
+
+
 from .streamclasses import SampleStream, FilterStream
 from .deprecated import FollowStream, TrackStream, LocationStream, TweetStream, ReconnectingTweetStream

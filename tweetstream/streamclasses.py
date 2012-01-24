@@ -114,11 +114,12 @@ class BaseStream(object):
             if exception.code == 401:
                 raise AuthenticationError("Access denied")
             elif exception.code == 404:
-                raise ConnectionError("URL not found: %s" % self.url)
+                raise ReconnectExponentiallyError("URL not found: %s" % self.url)
             else:  # re raise. No idea what would cause this, so want to know
+                # FIXME: perhaps wrap in one of the reconnectable error classes?
                 raise
         except urllib2.URLError, exception:
-            raise ConnectionError(exception.reason)
+            raise ReconnectExponentiallyError(exception.reason)
 
         # This is horrible. This line grabs the raw socket (actually an ssl
         # wrapped socket) from the guts of urllib2/httplib. We want the raw
@@ -179,7 +180,7 @@ class BaseStream(object):
                 buf += self._socket.recv(8192)
                 if buf == b"":  # something is wrong
                     self.close()
-                    raise ConnectionError("Got entry of length 0. Disconnected")
+                    raise ReconnectLinearlyError("Got entry of length 0. Disconnected")
                 elif buf.isspace():
                     buf = b""
                 elif b"\r" not in buf: # not enough data yet. Loop around
@@ -198,7 +199,7 @@ class BaseStream(object):
                             tweet = anyjson.deserialize(line)
                         except ValueError, e:
                             self.close()
-                            raise ConnectionError("Got invalid data from twitter", details=line)
+                            raise ReconnectImmediatelyError("Got invalid data from twitter", details=line)
 
                     if 'text' in tweet:
                         self.count += 1
