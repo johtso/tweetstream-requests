@@ -234,12 +234,13 @@ class FilterStream(BaseStream):
     url = "https://stream.twitter.com/1/statuses/filter.json"
 
     def __init__(self, username, password, follow=None, locations=None,
-                 track=None, catchup=None, url=None):
+                 track=None, catchup=None, raw=False, timeout=None, url=None):
         self._follow = follow
         self._locations = locations
         self._track = track
         # remove follow, locations, track
-        BaseStream.__init__(self, username, password, url=url)
+        BaseStream.__init__(self, username, password,
+                            raw=raw, timeout=timeout, url=url)
 
     def _get_post_data(self):
         postdata = {}
