@@ -209,7 +209,7 @@ class BaseStream(object):
 
             except socket.error, e:
                 self.close()
-                raise ReconnectImmediatelyError("Server disconnected")
+                raise ReconnectImmediatelyError("Server disconnected: %s" % (str(e)))
 
 
     def next(self):
