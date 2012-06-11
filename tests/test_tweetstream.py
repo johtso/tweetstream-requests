@@ -169,12 +169,10 @@ def test_buffering(cls, args, kwargs):
         for n in xrange(100):
             yield single_tweet+"\n"
 
-
     with test_server(handler=tweetsource, methods=("post", "get"), port="random") as server:
         stream = cls("foo", "bar", *args, url=server.baseurl)
         start = time.time()
         stream.next()
         first = time.time()
         diff = first - start
-        assert diff < 1, "Getting first tweet took more than a second!"
-
+        assert diff < 1, "Getting first tweet took too long! %i > 1" % (diff)
