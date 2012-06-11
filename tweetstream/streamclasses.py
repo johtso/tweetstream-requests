@@ -115,7 +115,7 @@ class BaseStream(object):
             if x.code == 401:
                 raise AuthenticationError("Access denied")
             elif x.code == 404:
-                raise ReconnectExponentiallyError("%s: %s" % (strself.url))
+                raise ReconnectExponentiallyError("%s: %s" % (self.url, x))
             else:
                 raise ReconnectExponentiallyError(str(x))
         except urllib2.URLError, x:
