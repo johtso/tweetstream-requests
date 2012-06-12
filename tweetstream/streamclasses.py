@@ -1,12 +1,11 @@
 import time
-import urllib
-import urllib2
-import socket
-from platform import python_version_tuple
-import anyjson
+import json
 
-from . import AuthenticationError, ConnectionError, USER_AGENT
+import requests
+
+from . import AuthenticationError, USER_AGENT
 from . import ReconnectImmediatelyError, ReconnectLinearlyError, ReconnectExponentiallyError
+
 
 class BaseStream(object):
     """A network connection to Twitters streaming API
@@ -84,6 +83,8 @@ class BaseStream(object):
         self.user_agent = USER_AGENT
         if url: self.url = url
 
+        self._client = None
+
     def __enter__(self):
         return self
 
@@ -93,65 +94,39 @@ class BaseStream(object):
 
     def _init_conn(self):
         """Open the connection to the twitter server"""
-        headers = {'User-Agent': self.user_agent}
+
+        if not self._client:
+            headers = {'User-Agent': self.user_agent}
+            auth = (self._username, self._password)
+            config = {'danger_mode': True, 'keep_alive': False}
+            self._client = requests.session(headers=headers,
+                                            auth=auth,
+                                            timeout=self._timeout,
+                                            config=config)
 
         postdata = self._get_post_data() or {}
         if self._catchup_count:
             postdata["count"] = self._catchup_count
 
-        poststring = urllib.urlencode(postdata) if postdata else None
-        req = urllib2.Request(self.url, poststring, headers)
-
-        password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        password_mgr.add_password(None, self.url, self._username, self._password)
-        handler = urllib2.HTTPBasicAuthHandler(password_mgr)
-        opener = urllib2.build_opener(handler)
+        req_method = 'post' if postdata else 'get'
 
         # If connecting fails, convert to ReconnectExponentiallyError so
         # clients can implement appropriate backoff.
         try:
-            self._conn = opener.open(req, timeout=self._timeout)
-        except urllib2.HTTPError, x:
-            if x.code == 401:
+            self._conn = self._client.request(req_method, self.url, data=postdata)
+        except requests.HTTPError, e:
+            code = e.response.status_code
+            if code == 401:
                 raise AuthenticationError("Access denied")
-            elif x.code == 404:
-                raise ReconnectExponentiallyError("%s: %s" % (self.url, x))
+            elif code == 404:
+                raise ReconnectExponentiallyError("%s: %s" % (self.url, e))
             else:
-                raise ReconnectExponentiallyError(str(x))
-        except urllib2.URLError, x:
-            raise ReconnectExponentiallyError(str(x))
-
-        # This is horrible. This line grabs the raw socket (actually an ssl
-        # wrapped socket) from the guts of urllib2/httplib. We want the raw
-        # socket so we can bypass the buffering that those libs provide.
-        # The buffering is reasonable when dealing with connections that
-        # try to finish as soon as possible. With twitters' never ending
-        # connections, it causes a bug where we would not deliver tweets
-        # until the buffer was full. That's problematic for very low volume
-        # filterstreams, since you might not see a tweet for minutes or hours
-        # after they occured while the buffer fills.
-        #
-        # Oh, and the inards of the http libs are different things on in
-        # py2 and 3, so need to deal with that. py3 libs do more of what I
-        # want by default, but I wont do more special casing for it than
-        # neccessary.
-
-        major, _, _ = python_version_tuple()
-        # The cast is needed because apparently some versions return strings
-        # and some return ints.
-        # On my ubuntu with stock 2.6 I get strings, which match the docs.
-        # Someone reported the issue on 2.6.1 on macos, but that was
-        # manually built, not the bundled one. Anyway, cast for safety.
-        major = int(major)
-        if major == 2:
-            self._socket = self._conn.fp._sock.fp._sock
+                raise ReconnectExponentiallyError(str(e))
+        except requests.ConnectionError, e:
+            raise ReconnectExponentiallyError(str(e))
         else:
-            self._socket = self._conn.fp.raw
-            # our code that reads from the socket expects a method called recv.
-            # py3 socket.SocketIO uses the name read, so alias it.
-            self._socket.recv = self._socket.read
+            self.connected = True
 
-        self.connected = True
         if not self.starttime:
             self.starttime = time.time()
         if not self._rate_ts:
@@ -171,32 +146,19 @@ class BaseStream(object):
             self._rate_ts = time.time()
 
     def __iter__(self):
-        buf = b""
+        # buf = b""
         while True:
             try:
                 if not self.connected:
                     self._init_conn()
 
-                buf += self._socket.recv(8192)
-                if buf == b"":  # something is wrong
-                    self.close()
-                    raise ReconnectLinearlyError("Got entry of length 0. Disconnected")
-                elif buf.isspace():
-                    buf = b""
-                elif b"\r" not in buf: # not enough data yet. Loop around
-                    continue
-
-                lines = buf.split(b"\r")
-                buf = lines[-1]
-                lines = lines[:-1]
-
-                for line in lines:
+                for line in self._conn.iter_lines(chunk_size=1):
                     if (self._raw_mode):
                         tweet = line
                     else:
                         line = line.decode("utf8")
                         try:
-                            tweet = anyjson.deserialize(line)
+                            tweet = json.loads(line)
                         except ValueError, e:
                             self.close()
                             raise ReconnectImmediatelyError("Got invalid data from twitter", details=line)
@@ -206,16 +168,13 @@ class BaseStream(object):
                         self._rate_cnt += 1
                     yield tweet
 
-
-            except socket.error, e:
+            except RuntimeError, e:
                 self.close()
-                raise ReconnectImmediatelyError("Server disconnected: %s" % (str(e)))
-
+                raise ReconnectImmediatelyError("Server disconnected: %s" % (e, ))
 
     def next(self):
         """Return the next available tweet. This call is blocking!"""
         return self._iter.next()
-
 
     def close(self):
         """
@@ -223,7 +182,7 @@ class BaseStream(object):
         """
         self.connected = False
         if self._conn:
-            self._conn.close()
+            self._conn.raw.release_conn()
 
 
 class SampleStream(BaseStream):
