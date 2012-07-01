@@ -1,9 +1,9 @@
 import sys
 import os
 
-extra = {}
-if sys.version_info >= (3, 0):
-    extra.update(use_2to3=True)
+# extra = {}
+# if sys.version_info >= (3, 0):
+#     extra.update(use_2to3=True)
 
 
 try:
@@ -64,8 +64,8 @@ setup(name='tweetstream',
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.1',
+        # 'Programming Language :: Python :: 3',
+        # 'Programming Language :: Python :: 3.1',
     ],
     keywords='twitter',
     author=meta["author"],

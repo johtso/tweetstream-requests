@@ -66,3 +66,13 @@
 
  - Fixed issue #16. Odd case where python_version_tuple was returning ints
    rather than the strings the docs promis. Make sure we always cast to int.
+
+1.2
+
+ - Added "raw" kwarg to stream classes. Returns raw tweets rather than
+   decoding the JSON.
+
+ - New, fine grained, disconnect exceptions. Adds a ReconnectableError
+   of which there are three subclases for different reconnect behaviours.
+
+ 

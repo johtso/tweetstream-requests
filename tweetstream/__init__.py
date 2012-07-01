@@ -1,6 +1,6 @@
 """Simple access to Twitter's streaming API"""
 
-VERSION = (1, 1, 1)
+VERSION = (1, 2)
 __version__ = ".".join(map(str, VERSION[0:3])) + "".join(VERSION[3:])
 __author__ = "Rune Halvorsen"
 __contact__ = "runefh@gmail.com"
