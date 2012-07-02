@@ -8,18 +8,18 @@ class DeprecatedStream(FilterStream):
 
 
 class FollowStream(DeprecatedStream):
-    def __init__(self, username, password, follow, catchup=None, url=None):
-        super(FollowStream, self).__init__(username, password, follow=follow, catchup=catchup, url=url)
+    def __init__(self, username, password, follow, catchup=None, url=None, raw=False):
+        super(FollowStream, self).__init__(username, password, follow=follow, catchup=catchup, url=url, raw=raw)
 
 
 class TrackStream(DeprecatedStream):
-    def __init__(self, username, password, track, catchup=None, url=None, slow=False):
-        super(TrackStream, self).__init__(username, password, track=track, catchup=catchup, url=url)
+    def __init__(self, username, password, track, catchup=None, url=None, slow=False, raw=False):
+        super(TrackStream, self).__init__(username, password, track=track, catchup=catchup, url=url, raw=raw)
 
 
 class LocationStream(DeprecatedStream):
-    def __init__(self, username, password, locations, catchup=None, url=None, slow=False):
-        super(LocationStream, self).__init__(username, password, locations=locations, catchup=catchup, url=url)
+    def __init__(self, username, password, locations, catchup=None, url=None, slow=False, raw=False):
+        super(LocationStream, self).__init__(username, password, locations=locations, catchup=catchup, url=url, raw=raw)
 
 
 class TweetStream(SampleStream):
