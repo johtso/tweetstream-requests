@@ -96,13 +96,9 @@ class BaseStream(object):
         """Open the connection to the twitter server"""
 
         if not self._client:
-            headers = {'User-Agent': self.user_agent}
-            auth = (self._username, self._password)
-            config = {'danger_mode': True, 'keep_alive': False}
-            self._client = requests.session(headers=headers,
-                                            auth=auth,
-                                            timeout=self._timeout,
-                                            config=config)
+            self._client = requests.Session()
+            self._client.headers = {'User-Agent': self.user_agent}
+            self._client.auth = (self._username, self._password)
 
         postdata = self._get_post_data() or {}
         if self._catchup_count:
@@ -113,7 +109,9 @@ class BaseStream(object):
         # If connecting fails, convert to ReconnectExponentiallyError so
         # clients can implement appropriate backoff.
         try:
-            self._conn = self._client.request(req_method, self.url, data=postdata)
+            self._conn = self._client.request(req_method, self.url, data=postdata,
+                                              stream=True)
+            self._conn.raise_for_status()
         except requests.HTTPError, e:
             code = e.response.status_code
             if code == 401:
@@ -146,27 +144,41 @@ class BaseStream(object):
             self._rate_ts = time.time()
 
     def __iter__(self):
-        # buf = b""
+        buf = b""
         while True:
             try:
                 if not self.connected:
                     self._init_conn()
 
-                for line in self._conn.iter_lines(chunk_size=1):
-                    if (self._raw_mode):
-                        tweet = line
-                    else:
-                        line = line.decode("utf8")
-                        try:
-                            tweet = json.loads(line)
-                        except ValueError, e:
-                            self.close()
-                            raise ReconnectImmediatelyError("Got invalid data from twitter", details=line)
+                buf += self._conn.raw.read(1)
+                if buf == b"":  # something is wrong
+                    self.close()
+                    raise ReconnectLinearlyError("Got entry of length 0. Disconnected")
+                if buf.isspace():
+                    buf = b""
+                elif b"\r" not in buf:  # not enough data yet. Loop around
+                    continue
 
-                    if 'text' in tweet:
-                        self.count += 1
-                        self._rate_cnt += 1
-                    yield tweet
+                lines = buf.split(b"\r")
+                buf = lines[-1]
+                lines = lines[:-1]
+
+                for line in lines:
+                    if line:
+                        if (self._raw_mode):
+                            tweet = line
+                        else:
+                            line = line.decode("utf8")
+                            try:
+                                tweet = json.loads(line)
+                            except ValueError, e:
+                                self.close()
+                                raise ReconnectImmediatelyError("Got invalid data from twitter", details=line)
+
+                        if 'text' in tweet:
+                            self.count += 1
+                            self._rate_cnt += 1
+                        yield tweet
 
             except RuntimeError, e:
                 self.close()
