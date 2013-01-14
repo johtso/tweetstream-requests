@@ -63,7 +63,7 @@ class BaseStream(object):
         :attr: `USER_AGENT`.
     """
 
-    def __init__(self, username, password,
+    def __init__(self, username, password, auth=None, session=None,
                  catchup=None, raw=False, timeout=None, url=None):
         self._conn = None
         self._rate_ts = None
@@ -83,7 +83,8 @@ class BaseStream(object):
         self.user_agent = USER_AGENT
         if url: self.url = url
 
-        self._client = None
+        self._auth = auth
+        self._client = session
 
     def __enter__(self):
         return self
@@ -97,8 +98,13 @@ class BaseStream(object):
 
         if not self._client:
             self._client = requests.Session()
-            self._client.headers = {'User-Agent': self.user_agent}
+
+        self._client.headers.update({'User-Agent': self.user_agent})
+
+        if any([self._username, self._password]):
             self._client.auth = (self._username, self._password)
+        elif self._auth:
+            self._client.auth = self._auth
 
         postdata = self._get_post_data() or {}
         if self._catchup_count:
