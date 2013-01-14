@@ -11,7 +11,7 @@ slow = pytest.mark.slow
 
 from servercontext import test_server
 
-single_tweet = r"""{"in_reply_to_status_id":null,"in_reply_to_user_id":null,"favorited":false,"created_at":"Tue Jun 16 10:40:14 +0000 2009","in_reply_to_screen_name":null,"text":"record industry just keeps on amazing me: http:\/\/is.gd\/13lFo - $150k per song you've SHARED, not that somebody has actually DOWNLOADED.","user":{"notifications":null,"profile_background_tile":false,"followers_count":206,"time_zone":"Copenhagen","utc_offset":3600,"friends_count":191,"profile_background_color":"ffffff","profile_image_url":"http:\/\/s3.amazonaws.com\/twitter_production\/profile_images\/250715794\/profile_normal.png","description":"Digital product developer, currently at Opera Software. My tweets are my opinions, not those of my employer.","verified_profile":false,"protected":false,"favourites_count":0,"profile_text_color":"3C3940","screen_name":"eiriksnilsen","name":"Eirik Stridsklev N.","following":null,"created_at":"Tue May 06 12:24:12 +0000 2008","profile_background_image_url":"http:\/\/s3.amazonaws.com\/twitter_production\/profile_background_images\/10531192\/160x600opera15.gif","profile_link_color":"0099B9","profile_sidebar_fill_color":"95E8EC","url":"http:\/\/www.stridsklev-nilsen.no\/eirik","id":14672543,"statuses_count":506,"profile_sidebar_border_color":"5ED4DC","location":"Oslo, Norway"},"id":2190767504,"truncated":false,"source":"<a href=\"http:\/\/widgets.opera.com\/widget\/7206\">Twitter Opera widget<\/a>"}""" + "\r"
+single_tweet = r"""{"in_reply_to_status_id":null,"in_reply_to_user_id":null,"favorited":false,"created_at":"Tue Jun 16 10:40:14 +0000 2009","in_reply_to_screen_name":null,"text":"record industry just keeps on amazing me: http:\/\/is.gd\/13lFo - $150k per song you've SHARED, not that somebody has actually DOWNLOADED.","user":{"notifications":null,"profile_background_tile":false,"followers_count":206,"time_zone":"Copenhagen","utc_offset":3600,"friends_count":191,"profile_background_color":"ffffff","profile_image_url":"http:\/\/s3.amazonaws.com\/twitter_production\/profile_images\/250715794\/profile_normal.png","description":"Digital product developer, currently at Opera Software. My tweets are my opinions, not those of my employer.","verified_profile":false,"protected":false,"favourites_count":0,"profile_text_color":"3C3940","screen_name":"eiriksnilsen","name":"Eirik Stridsklev N.","following":null,"created_at":"Tue May 06 12:24:12 +0000 2008","profile_background_image_url":"http:\/\/s3.amazonaws.com\/twitter_production\/profile_background_images\/10531192\/160x600opera15.gif","profile_link_color":"0099B9","profile_sidebar_fill_color":"95E8EC","url":"http:\/\/www.stridsklev-nilsen.no\/eirik","id":14672543,"statuses_count":506,"profile_sidebar_border_color":"5ED4DC","location":"Oslo, Norway"},"id":2190767504,"truncated":false,"source":"<a href=\"http:\/\/widgets.opera.com\/widget\/7206\">Twitter Opera widget<\/a>"}""" + "\r\n"
 
 
 def parameterized(funcarglist):
@@ -68,9 +68,9 @@ def test_bad_content(cls, args, kwargs):
         for n in xrange(10):
             # what json we pass doesn't matter. It's not verifying the
             # strcuture, only checking that it's parsable
-            yield "[1,2,3]\r"
-        yield "[1,2, I need no stinking close brace\r"
-        yield "[1,2,3]\r"
+            yield "[1,2,3]\r\n"
+        yield "[1,2, I need no stinking close brace\r\n"
+        yield "[1,2,3]\r\n"
 
 
     with raises(ConnectionError):
@@ -88,7 +88,7 @@ def test_closed_connection(cls, args, kwargs):
         for n in xrange(cnt):
             # what json we pass doesn't matter. It's not verifying the
             # strcuture, only checking that it's parsable
-            yield "[1,2,3]\r"
+            yield "[1,2,3]\r\n"
 
     with raises(ConnectionError):
         with test_server(handler=bad_content, methods=("post", "get"), port="random") as server:
@@ -112,7 +112,7 @@ def smoke_test_receive_tweets(cls, args, kwargs):
 
     def tweetsource(request):
         while True:
-            yield single_tweet + "\n"
+            yield single_tweet
 
     with test_server(handler=tweetsource, methods=("post", "get"), port="random") as server:
         stream = cls("foo", "bar", *args, url=server.baseurl)
@@ -126,19 +126,19 @@ def test_keepalive(cls, args, kwargs):
     """Make sure we behave sanely when there are keepalive newlines in the
     data recevived from twitter"""
     def tweetsource(request):
-        yield single_tweet+"\n"
-        yield "\n"
-        yield "\n"
-        yield single_tweet+"\n"
-        yield "\n"
-        yield "\n"
-        yield "\n"
-        yield "\n"
-        yield "\n"
-        yield "\n"
-        yield "\n"
-        yield single_tweet+"\n"
-        yield "\n"
+        yield single_tweet
+        yield "\r\n"
+        yield "\r\n"
+        yield single_tweet
+        yield "\r\n"
+        yield "\r\n"
+        yield "\r\n"
+        yield "\r\n"
+        yield "\r\n"
+        yield "\r\n"
+        yield "\r\n"
+        yield single_tweet
+        yield "\r\n"
 
 
     with test_server(handler=tweetsource, methods=("post", "get"), port="random") as server:
@@ -162,12 +162,12 @@ def test_buffering(cls, args, kwargs):
     that enables readline is 8k. Max tweet length is around 3k."""
 
     def tweetsource(request):
-        yield single_tweet+"\n"
+        yield single_tweet
         time.sleep(2)
         # need to yield a bunch here so we're sure we'll return from the
         # blocking call in case the buffering bug is present.
         for n in xrange(100):
-            yield single_tweet+"\n"
+            yield single_tweet
 
     with test_server(handler=tweetsource, methods=("post", "get"), port="random") as server:
         stream = cls("foo", "bar", *args, url=server.baseurl)

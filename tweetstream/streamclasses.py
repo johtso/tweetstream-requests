@@ -149,46 +149,52 @@ class BaseStream(object):
             self._rate_cnt = 0
             self._rate_ts = time.time()
 
-    def __iter__(self):
+    def _iter_lines(self):
         buf = b""
-        while True:
-            try:
-                if not self.connected:
-                    self._init_conn()
 
-                buf += self._conn.raw.read(1)
-                if buf == b"":  # something is wrong
-                    self.close()
-                    raise ReconnectLinearlyError("Got entry of length 0. Disconnected")
-                if buf.isspace():
-                    buf = b""
-                elif b"\r" not in buf:  # not enough data yet. Loop around
-                    continue
+        for chunk in self._conn.iter_content(
+            chunk_size=1,
+            decode_unicode=(not self._raw_mode)):
 
-                lines = buf.split(b"\r")
-                buf = lines[-1]
-                lines = lines[:-1]
+            buf += chunk
 
-                for line in lines:
-                    if line:
-                        if (self._raw_mode):
-                            tweet = line
-                        else:
-                            line = line.decode("utf8")
-                            try:
-                                tweet = json.loads(line)
-                            except ValueError, e:
-                                self.close()
-                                raise ReconnectImmediatelyError("Got invalid data from twitter", details=line)
-
-                        if 'text' in tweet:
-                            self.count += 1
-                            self._rate_cnt += 1
-                        yield tweet
-
-            except RuntimeError, e:
+            if buf == b"":  # something is wrong
                 self.close()
-                raise ReconnectImmediatelyError("Server disconnected: %s" % (e, ))
+                raise ReconnectLinearlyError("Got entry of length 0. Disconnected")
+
+            if buf.isspace():
+                buf = b""
+                continue
+            elif b"\r\n" not in buf:  # not enough data yet. Loop around
+                continue
+
+            lines = buf.splitlines()
+            if lines and lines[-1] and chunk and lines[-1][-1] == chunk[-1]:
+                buf = lines.pop()
+            else:
+                buf = b""
+
+            for line in lines:
+                if line:
+                    yield line
+
+    def __iter__(self):
+        if not self.connected:
+            self._init_conn()
+
+        for line in self._iter_lines():
+            try:
+                tweet = json.loads(line)
+            except ValueError:
+                self.close()
+                raise ReconnectImmediatelyError("Got invalid data from twitter", details=line)
+
+            if 'text' in tweet:
+                self.count += 1
+                self._rate_cnt += 1
+            yield tweet
+
+        raise ReconnectImmediatelyError("Server disconnected.")
 
     def next(self):
         """Return the next available tweet. This call is blocking!"""
