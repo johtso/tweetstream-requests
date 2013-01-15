@@ -2,7 +2,6 @@ import contextlib
 import threading
 import time
 
-from tweetstream import TweetStream, FollowStream, TrackStream, LocationStream
 from tweetstream import ConnectionError, AuthenticationError, SampleStream, FilterStream
 
 import pytest
@@ -26,12 +25,8 @@ def pytest_generate_tests(metafunc):
 
 
 streamtypes = [
-    dict(cls=TweetStream, args=[], kwargs=dict()),
     dict(cls=SampleStream, args=[], kwargs=dict()),
     dict(cls=FilterStream, args=[], kwargs=dict(track=("test",))),
-    dict(cls=FollowStream, args=[[1, 2, 3]], kwargs=dict()),
-    dict(cls=TrackStream, args=["opera"], kwargs=dict()),
-    dict(cls=LocationStream, args=["123,4321"], kwargs=dict())
 ]
 
 

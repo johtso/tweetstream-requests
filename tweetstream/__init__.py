@@ -24,7 +24,3 @@ from .exceptions import (
     ReconnectImmediatelyError, ReconnectLinearlyError,
     ReconnectExponentiallyError, AuthenticationError
 )
-from .deprecated import (
-    FollowStream, TrackStream, LocationStream, TweetStream,
-    ReconnectingTweetStream
-)
