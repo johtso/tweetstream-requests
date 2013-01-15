@@ -1,5 +1,6 @@
 import time
 import json
+import ssl
 
 import requests
 
@@ -24,7 +25,7 @@ class BaseStream(object):
       socket. Certain types of network problems (e.g., disconnecting a VPN)
       can cause the connection to hang, leading to indefinite blocking that
       requires kill -9 to resolve. Setting a timeout leads to an orderly
-      shutdown in these cases. The default is None (i.e., no timeout).
+      shutdown in these cases. The default is Twitter's suggested 90 seconds.
     :keyword url: Endpoint URL for the object. Note: you should not
       need to edit this. It's present to make testing easier.
 
@@ -67,7 +68,7 @@ class BaseStream(object):
     """
 
     def __init__(self, username, password, auth=None, session=None,
-                 catchup=None, raw=False, timeout=None, url=None):
+                 catchup=None, raw=False, timeout=90, url=None):
         self._conn = None
         self._rate_ts = None
         self._rate_cnt = 0
@@ -119,7 +120,7 @@ class BaseStream(object):
         # clients can implement appropriate backoff.
         try:
             self._conn = self._client.request(req_method, self.url, data=postdata,
-                                              stream=True)
+                                              stream=True, timeout=self._timeout)
             self._conn.raise_for_status()
         except requests.HTTPError as e:
             code = e.response.status_code
@@ -182,20 +183,28 @@ class BaseStream(object):
                     yield line
 
     def __iter__(self):
-        if not self.connected:
-            self._init_conn()
+        try:
+            if not self.connected:
+                self._init_conn()
 
-        for line in self._iter_lines():
-            try:
-                tweet = json.loads(line)
-            except ValueError:
-                self.close()
-                raise ReconnectImmediatelyError("Got invalid data from twitter", details=line)
+            for line in self._iter_lines():
+                try:
+                    tweet = json.loads(line)
+                except ValueError:
+                    self.close()
+                    raise ReconnectImmediatelyError("Got invalid data from twitter", details=line)
 
-            if 'text' in tweet:
-                self.count += 1
-                self._rate_cnt += 1
-            yield tweet
+                if 'text' in tweet:
+                    self.count += 1
+                    self._rate_cnt += 1
+                yield tweet
+        except (requests.Timeout, ssl.SSLError) as e:
+            if isinstance(e, ssl.SSLError):
+                # When using https timeouts cause a generic SSLError to be raised
+                # so we need to check the error text.
+                if not 'timed out' in e.message:
+                    raise
+            raise ReconnectImmediatelyError("Stream timed out.")
 
         raise ReconnectImmediatelyError("Server disconnected.")
 
