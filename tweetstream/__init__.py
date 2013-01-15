@@ -22,5 +22,6 @@ from .streamclasses import SampleStream, FilterStream
 from .exceptions import (
     TweetStreamError, ConnectionError, ReconnectError,
     ReconnectImmediatelyError, ReconnectLinearlyError,
-    ReconnectExponentiallyError, AuthenticationError
+    ReconnectExponentiallyError, AuthenticationError,
+    EnhanceYourCalmError
 )

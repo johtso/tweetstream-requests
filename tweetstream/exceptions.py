@@ -51,3 +51,10 @@ class ReconnectExponentiallyError(ReconnectError):
 # Parent class per Twitter error handling guidance noted above.
 class AuthenticationError(ReconnectExponentiallyError):
     """Exception raised if the username/password is not accepted"""
+
+class EnhanceYourCalmError(ReconnectExponentiallyError):
+    '''Exception raised when a 420 response is recieved signifying that you
+    are being rate limited. From Twitter docs: "Back off exponentially for
+    HTTP 420 errors. Start with a 1 minute wait and double each attempt.
+    Note that every HTTP 420 received increases the time you must wait until
+    rate limiting will no longer will be in effect for your account."'''
