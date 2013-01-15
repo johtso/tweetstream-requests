@@ -118,7 +118,7 @@ class BaseStream(object):
             self._conn = self._client.request(req_method, self.url, data=postdata,
                                               stream=True)
             self._conn.raise_for_status()
-        except requests.HTTPError, e:
+        except requests.HTTPError as e:
             code = e.response.status_code
             if code == 401:
                 raise AuthenticationError("Access denied")
@@ -126,7 +126,7 @@ class BaseStream(object):
                 raise ReconnectExponentiallyError("%s: %s" % (self.url, e))
             else:
                 raise ReconnectExponentiallyError(str(e))
-        except requests.ConnectionError, e:
+        except requests.ConnectionError as e:
             raise ReconnectExponentiallyError(str(e))
         else:
             self.connected = True

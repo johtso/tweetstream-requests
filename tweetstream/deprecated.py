@@ -63,7 +63,7 @@ class ReconnectingTweetStream(TweetStream):
         while True:
             try:
                 return TweetStream.next(self)
-            except ConnectionError, e:
+            except ConnectionError as e:
                 self._reconnects += 1
                 if self._reconnects > self.max_reconnects:
                     raise ConnectionError("Too many retries")

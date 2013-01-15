@@ -149,7 +149,7 @@ class _TestServerThread(threading.Thread):
                         break
             else: # use specific port. this might throw, that's expected
                 self._server = HTTPServer(self.serverloc, self._handler)
-        except socket.error, e:
+        except socket.error as e:
             self.running = False
             self.error = e
             # set this here, since we'll never enter the serve loop where
@@ -206,7 +206,7 @@ def test_server(handler=_SilentSimpleHTTPRequestHandler, port=8514,
     exc = None
     try:
         yield ServerContext(*thread.serverloc)
-    except Exception, exc:
+    except Exception as exc:
         pass
     thread.stop()
     thread.join(5) # giving it a lot of leeway. should never happen
