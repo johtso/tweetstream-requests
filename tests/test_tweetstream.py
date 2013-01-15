@@ -1,5 +1,3 @@
-import contextlib
-import threading
 import time
 
 from tweetstream import ConnectionError, AuthenticationError, SampleStream, FilterStream
