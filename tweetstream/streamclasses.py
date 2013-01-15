@@ -222,11 +222,11 @@ class BaseStream(object):
 
 
 class SampleStream(BaseStream):
-    url = "https://stream.twitter.com/1/statuses/sample.json"
+    url = "https://stream.twitter.com/1.1/statuses/sample.json"
 
 
 class FilterStream(BaseStream):
-    url = "https://stream.twitter.com/1/statuses/filter.json"
+    url = "https://stream.twitter.com/1.1/statuses/filter.json"
 
     def __init__(self, username, password, follow=None, locations=None,
                  track=None, catchup=None, raw=False, timeout=None, url=None):
