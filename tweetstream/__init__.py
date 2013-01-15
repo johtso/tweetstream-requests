@@ -21,7 +21,6 @@ USER_AGENT = "TweetStream %s" % __version__
 
 class TweetStreamError(Exception):
     """Base class for all tweetstream errors"""
-    pass
 
 
 class ConnectionError(TweetStreamError):
@@ -44,19 +43,19 @@ class ConnectionError(TweetStreamError):
 
 class ReconnectError(ConnectionError):
     """Base class of the reconnectable connection errors."""
-    pass
+
 
 class ReconnectImmediatelyError(ReconnectError):
     '''From Twitter docs: "Once a valid connection connection drops, reconnect
     immediately."'''
-    pass
+
 
 class ReconnectLinearlyError(ReconnectError):
     '''From Twitter docs: "When a network error (TCP/IP level) is encountered,
     back off linearly. Perhaps start at 250 milliseconds and cap at 16
     seconds. Network layer problems are generally transitory and tend to clear
     quickly."'''
-    pass
+
 
 class ReconnectExponentiallyError(ReconnectError):
     '''From Twitter docs: "When a HTTP error (> 200) is returned, back off
@@ -65,13 +64,11 @@ class ReconnectExponentiallyError(ReconnectError):
     sending an alert to a human operator after multiple HTTP errors, as there
     is probably a client configuration issue that is unlikely to be resolved
     without human intervention."'''
-    pass
 
 
 # Parent class per Twitter error handling guidance noted above.
 class AuthenticationError(ReconnectExponentiallyError):
     """Exception raised if the username/password is not accepted"""
-    pass
 
 
 from .streamclasses import SampleStream, FilterStream
