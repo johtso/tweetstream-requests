@@ -137,21 +137,12 @@ class BaseStream(object):
 
         if not self.starttime:
             self.starttime = time.time()
-        if not self._rate_ts:
-            self._rate_ts = time.time()
 
     def _get_post_data(self):
         """Subclasses that need to add post data to the request can override
         this method and return post data. The data should be in the format
         returned by urllib.urlencode."""
         return None
-
-    def _update_rate(self):
-        rate_time = time.time() - self._rate_ts
-        if not self._rate_ts or rate_time > self.rate_period:
-            self.rate = self._rate_cnt / rate_time
-            self._rate_cnt = 0
-            self._rate_ts = time.time()
 
     def _iter_lines(self):
         buf = b""
@@ -196,7 +187,6 @@ class BaseStream(object):
 
                 if 'text' in tweet:
                     self.count += 1
-                    self._rate_cnt += 1
                 yield tweet
         except (requests.Timeout, ssl.SSLError) as e:
             if isinstance(e, ssl.SSLError):
