@@ -68,14 +68,18 @@ class BaseStream(object):
     """
 
     def __init__(self, username, password, auth=None, session=None,
-                 catchup=None, raw=False, timeout=90, url=None):
+                 catchup=None, parse_json=True, decode_unicode=True,
+                 timeout=90, url=None):
         self._conn = None
         self._rate_ts = None
         self._rate_cnt = 0
         self._username = username
         self._password = password
         self._catchup_count = catchup
-        self._raw_mode = raw
+        if parse_json and not decode_unicode:
+            raise ValueError('Cannot parse json without first decoding.')
+        self._parse_json = parse_json
+        self._decode_unicode = decode_unicode
         self._timeout = timeout
         self._iter = self.__iter__()
 
@@ -149,7 +153,7 @@ class BaseStream(object):
 
         for chunk in self._conn.iter_content(
             chunk_size=1,
-            decode_unicode=(not self._raw_mode)):
+            decode_unicode=self._decode_unicode):
 
             buf += chunk
 
@@ -179,11 +183,14 @@ class BaseStream(object):
                 self._init_conn()
 
             for line in self._iter_lines():
-                try:
-                    tweet = json.loads(line)
-                except ValueError:
-                    self.close()
-                    raise ReconnectImmediatelyError("Got invalid data from twitter", details=line)
+                if self._parse_json:
+                    try:
+                        tweet = json.loads(line)
+                    except ValueError:
+                        self.close()
+                        raise ReconnectImmediatelyError("Got invalid data from twitter", details=line)
+                else:
+                    tweet = line
 
                 if 'text' in tweet:
                     self.count += 1
@@ -219,13 +226,16 @@ class FilterStream(BaseStream):
     url = "https://stream.twitter.com/1.1/statuses/filter.json"
 
     def __init__(self, username, password, follow=None, locations=None,
-                 track=None, catchup=None, raw=False, timeout=None, url=None):
+                 track=None, catchup=None, parse_json=True,
+                 decode_unicode=True, timeout=90, url=None):
         self._follow = follow
         self._locations = locations
         self._track = track
         # remove follow, locations, track
         BaseStream.__init__(self, username, password,
-                            raw=raw, timeout=timeout, url=url)
+                            parse_json=parse_json,
+                            decode_unicode=decode_unicode, timeout=timeout,
+                            url=url)
 
     def _get_post_data(self):
         postdata = {}
