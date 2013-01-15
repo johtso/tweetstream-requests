@@ -3,8 +3,11 @@ import json
 
 import requests
 
-from . import AuthenticationError, USER_AGENT
-from . import ReconnectImmediatelyError, ReconnectLinearlyError, ReconnectExponentiallyError
+from . import USER_AGENT
+from .exceptions import (
+    ReconnectImmediatelyError, ReconnectLinearlyError,
+    ReconnectExponentiallyError, AuthenticationError
+)
 
 
 class BaseStream(object):
