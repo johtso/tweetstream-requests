@@ -67,14 +67,12 @@ class BaseStream(object):
         :attr: `USER_AGENT`.
     """
 
-    def __init__(self, username, password, auth=None, session=None,
-                 catchup=None, parse_json=True, decode_unicode=True,
-                 timeout=90, url=None):
+    def __init__(self, auth=None, session=None, catchup=None, parse_json=True,
+                 decode_unicode=True, timeout=90, url=None):
         self._conn = None
         self._rate_ts = None
         self._rate_cnt = 0
-        self._username = username
-        self._password = password
+        self._auth = auth
         self._catchup_count = catchup
         if parse_json and not decode_unicode:
             raise ValueError('Cannot parse json without first decoding.')
@@ -109,9 +107,7 @@ class BaseStream(object):
 
         self._client.headers.update({'User-Agent': self.user_agent})
 
-        if any([self._username, self._password]):
-            self._client.auth = (self._username, self._password)
-        elif self._auth:
+        if self._auth:
             self._client.auth = self._auth
 
         postdata = self._get_post_data() or {}
@@ -227,15 +223,14 @@ class SampleStream(BaseStream):
 class FilterStream(BaseStream):
     url = "https://stream.twitter.com/1.1/statuses/filter.json"
 
-    def __init__(self, username, password, follow=None, locations=None,
+    def __init__(self, auth=None, follow=None, locations=None,
                  track=None, catchup=None, parse_json=True,
                  decode_unicode=True, timeout=90, url=None):
         self._follow = follow
         self._locations = locations
         self._track = track
         # remove follow, locations, track
-        BaseStream.__init__(self, username, password,
-                            parse_json=parse_json,
+        BaseStream.__init__(self, auth=auth, parse_json=parse_json,
                             decode_unicode=decode_unicode, timeout=timeout,
                             url=url)
 

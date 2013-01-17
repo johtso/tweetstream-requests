@@ -37,7 +37,7 @@ def test_bad_auth(cls, args, kwargs):
 
     with raises(AuthenticationError):
         with test_server(handler=auth_denied, methods=("post", "get"), port="random") as server:
-            stream = cls("user", "passwd", *args, url=server.baseurl)
+            stream = cls(("user", "passwd"), *args, url=server.baseurl)
             for e in stream: pass
 
 
@@ -50,7 +50,7 @@ def test_404_url(cls, args, kwargs):
 
     with raises(ConnectionError):
         with test_server(handler=not_found, methods=("post", "get"), port="random") as server:
-            stream = cls("user", "passwd", *args, url=server.baseurl)
+            stream = cls(("user", "passwd"), *args, url=server.baseurl)
             for e in stream: pass
 
 
@@ -68,7 +68,7 @@ def test_bad_content(cls, args, kwargs):
 
     with raises(ConnectionError):
         with test_server(handler=bad_content, methods=("post", "get"), port="random") as server:
-            stream = cls("user", "passwd", *args, url=server.baseurl)
+            stream = cls(("user", "passwd"), *args, url=server.baseurl)
             for tweet in stream:
                 pass
 
@@ -85,7 +85,7 @@ def test_closed_connection(cls, args, kwargs):
 
     with raises(ConnectionError):
         with test_server(handler=bad_content, methods=("post", "get"), port="random") as server:
-            stream = cls("foo", "bar", *args, url=server.baseurl)
+            stream = cls(("foo", "bar"), *args, url=server.baseurl)
             for tweet in stream:
                 pass
 
@@ -94,7 +94,7 @@ def test_closed_connection(cls, args, kwargs):
 def test_bad_host(cls, args, kwargs):
     """Test behaviour if we can't connect to the host"""
     with raises(ConnectionError):
-        stream = cls("username", "passwd", *args, url="http://wedfwecfghhreewerewads.foo")
+        stream = cls(("username", "passwd"), *args, url="http://wedfwecfghhreewerewads.foo")
         stream.next()
 
 
@@ -108,7 +108,7 @@ def smoke_test_receive_tweets(cls, args, kwargs):
             yield single_tweet
 
     with test_server(handler=tweetsource, methods=("post", "get"), port="random") as server:
-        stream = cls("foo", "bar", *args, url=server.baseurl)
+        stream = cls(("foo", "bar"), *args, url=server.baseurl)
         for tweet in stream:
             if stream.count == total:
                 break
@@ -135,7 +135,7 @@ def test_keepalive(cls, args, kwargs):
 
 
     with test_server(handler=tweetsource, methods=("post", "get"), port="random") as server:
-        stream = cls("foo", "bar", *args, url=server.baseurl)
+        stream = cls(("foo", "bar"), *args, url=server.baseurl)
         try:
             for tweet in stream:
                 pass
@@ -163,7 +163,7 @@ def test_buffering(cls, args, kwargs):
             yield single_tweet
 
     with test_server(handler=tweetsource, methods=("post", "get"), port="random") as server:
-        stream = cls("foo", "bar", *args, url=server.baseurl)
+        stream = cls(("foo", "bar"), *args, url=server.baseurl)
         start = time.time()
         stream.next()
         first = time.time()
