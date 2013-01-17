@@ -176,10 +176,9 @@ class BaseStream(object):
                     yield line
 
     def __iter__(self):
+        if not self.connected:
+            self._init_conn()
         try:
-            if not self.connected:
-                self._init_conn()
-
             for line in self._iter_lines():
                 if self._parse_json:
                     try:
@@ -199,7 +198,8 @@ class BaseStream(object):
                 # so we need to check the error text.
                 if not 'timed out' in e.message:
                     raise
-            raise ReconnectImmediatelyError("Stream timed out.")
+                else:
+                    raise ReconnectImmediatelyError("Stream timed out.")
 
         raise ReconnectImmediatelyError("Server disconnected.")
 
