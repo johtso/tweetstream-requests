@@ -14,17 +14,17 @@ class ServerContext(object):
     """Context object with information about a running test server."""
 
     def __init__(self, address, port):
-        self.address = address or "localhost"
+        self.address = address
         self.port = port
 
     @property
     def baseurl(self):
         return "http://%s:%s" % (self.address, self.port)
 
-    def __str__(self):
+    def __repr__(self):
         return "<ServerContext %s >" % self.baseurl
 
-    __repr__ = __str__
+    __str__ = __repr__
 
 
 class TestServerThread(threading.Thread):
