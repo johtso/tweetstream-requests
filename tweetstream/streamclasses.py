@@ -136,7 +136,6 @@ class BaseStream(object):
             raise ReconnectExponentiallyError(str(e))
         else:
             self.connected = True
-
         if not self.starttime:
             self.starttime = time.time()
 
@@ -203,9 +202,11 @@ class BaseStream(object):
 
         raise ReconnectImmediatelyError("Server disconnected.")
 
-    def next(self):
+    def __next__(self):
         """Return the next available tweet. This call is blocking!"""
-        return self._iter.next()
+        return next(self._iter)
+
+    next = __next__
 
     def close(self):
         """

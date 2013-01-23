@@ -1,18 +1,13 @@
+import socket
 import threading
 import contextlib
-import time
-import os
-import socket
-import random
-from functools import partial
-from inspect import isclass
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-from SimpleHTTPServer import SimpleHTTPRequestHandler
-from SocketServer import BaseRequestHandler
+from wsgiref.simple_server import make_server
+try:
+    from http.server import BaseHTTPRequestHandler
+except ImportError:
+    from BaseHTTPServer import BaseHTTPRequestHandler
 
-
-class ServerError(Exception):
-    pass
+http_responses = BaseHTTPRequestHandler.responses
 
 
 class ServerContext(object):
@@ -32,190 +27,92 @@ class ServerContext(object):
     __repr__ = __str__
 
 
-class _SilentSimpleHTTPRequestHandler(SimpleHTTPRequestHandler):
-
-    def __init__(self, *args, **kwargs):
-        self.logging = kwargs.get("logging", False)
-        SimpleHTTPRequestHandler.__init__(self, *args, **kwargs)
-
-    def log_message(self, *args, **kwargs):
-        if self.logging:
-            SimpleHTTPRequestHandler.log_message(self, *args, **kwargs)
-
-
-class _TestHandler(BaseHTTPRequestHandler):
-    """RequestHandler class that handles requests that use a custom handler
-    callable."""
-
-    def __init__(self, handler, methods, *args, **kwargs):
-        self._handler = handler
-        self._methods = methods
-        self._response_sent = False
-        self._headers_sent = False
-        self.logging = kwargs.get("logging", False)
-        BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
-
-    def log_message(self, *args, **kwargs):
-        if self.logging:
-            BaseHTTPRequestHandler.log_message(self, *args, **kwargs)
-
-    def send_response(self, *args, **kwargs):
-        self._response_sent = True
-        BaseHTTPRequestHandler.send_response(self, *args, **kwargs)
-
-    def end_headers(self, *args, **kwargs):
-        self._headers_sent = True
-        BaseHTTPRequestHandler.end_headers(self, *args, **kwargs)
-
-    def _do_whatever(self):
-        """Called in place of do_METHOD"""
-        data = self._handler(self)
-
-        if hasattr(data, "next"):
-            # assume it's something supporting generator protocol
-            self._handle_with_iterator(data)
-        else:
-            # Nothing more to do then.
-            pass
-
-
-    def __getattr__(self, name):
-        if name.startswith("do_") and name[3:].lower() in self._methods:
-            return self._do_whatever
-        else:
-            # fixme instance or class?
-            raise AttributeError(name)
-
-    def _handle_with_iterator(self, iterator):
-        self.connection.settimeout(0.1)
-        for data in iterator:
-            if not self.server.server_thread.running:
-                return
-
-            if not self._response_sent:
-                self.send_response(200)
-            if not self._headers_sent:
-                self.end_headers()
-
-            self.wfile.write(data)
-            # flush immediatly. We may want to do trickling writes
-            # or something else tha trequires bypassing normal caching
-            self.wfile.flush()
-
-class _TestServerThread(threading.Thread):
+class TestServerThread(threading.Thread):
     """Thread class for a running test server"""
 
-    def __init__(self, handler, methods, cwd, port, address):
-        threading.Thread.__init__(self)
-        self.startup_finished = threading.Event()
-        self._methods = methods
-        self._cwd = cwd
-        self._orig_cwd = None
-        self._handler = self._wrap_handler(handler, methods)
-        self._setup()
-        self.running = True
-        self.serverloc = (address, port)
+    daemon = True
+
+    def __init__(self, response, status, headers, address, port):
+        self.address = address
+        self.port = port
+        self._app = self._make_app(response, status, headers)
+        self._server = None
         self.error = None
 
-    def _wrap_handler(self, handler, methods):
-        if isclass(handler) and issubclass(handler, BaseRequestHandler):
-            return handler # It's OK. user passed in a proper handler
-        elif callable(handler):
-            return partial(_TestHandler, handler, methods)
-            # it's a callable, so wrap in a req handler
-        else:
-            raise ServerError("handler must be callable or RequestHandler")
+        self.startup_finished = threading.Event()
 
-    def _setup(self):
-        if self._cwd != "./":
-            self._orig_cwd = os.getcwd()
-            os.chdir(self._cwd)
+        threading.Thread.__init__(self)
 
-    def _init_server(self):
-        """Hooks up the server socket"""
+    def _format_status(self, status):
+        if isinstance(status, int):
+            reason_phrase = http_responses[status][0]
+            status = '{} {}'.format(status, reason_phrase)
+        elif not isinstance(status, basestring):
+            raise ValueError('Status must be string or int')
+        return status
+
+    def _make_app(self, response, status, headers):
+        status = self._format_status(status)
+
+        def app(environ, start_response):
+            start_response(status, list(headers))
+            if response:
+                iter_resp = None
+                if callable(response):
+                    iter_resp = response()
+                elif hasattr(response, '__iter__'):
+                    iter_resp = response
+                if iter_resp:
+                    for x in iter_resp:
+                        yield x
+                else:
+                    yield response
+
+        return app
+
+    def _init_server(self, address, port, app):
         try:
-            if self.serverloc[1] == "random":
-                retries = 10 # try getting an available port max this many times
-                while True:
-                    try:
-                        self.serverloc = (self.serverloc[0],
-                                          random.randint(1025, 49151))
-                        self._server = HTTPServer(self.serverloc, self._handler)
-                    except socket.error:
-                        retries -= 1
-                        if not retries: # not able to get a port.
-                            raise
-                    else:
-                        break
-            else: # use specific port. this might throw, that's expected
-                self._server = HTTPServer(self.serverloc, self._handler)
-        except socket.error as e:
-            self.running = False
-            self.error = e
-            # set this here, since we'll never enter the serve loop where
-            # it is usually set:
-            self.startup_finished.set()
+            self._server = make_server(address, port, app)
+        except socket.error as exc:
+            self.error = exc
             return
-
-        self._server.allow_reuse_address = True # lots of tests, same port
-        self._server.timeout = 0.1
-        self._server.server_thread = self
-
-
-    def run(self):
-        self._init_server()
-
-        while self.running:
-            self._server.handle_request() # blocks for self.timeout secs
-            # First time this falls through, signal the parent thread that
-            # the server is ready for incomming connections
-            if not self.startup_finished.is_set():
-                self.startup_finished.set()
-
-        self._cleanup()
+        else:
+            self._server.timeout = 0.1
+            self._server.allow_reuse_address = True
 
     def stop(self):
-        """Stop the server and attempt to make the thread terminate.
-        This happens async but the calling code can check periodically
-        the isRunning flag on the thread object.
-        """
-        # actual stopping happens in the run method
-        self.running = False
+        self._server.shutdown()
 
-    def _cleanup(self):
-        """Do some rudimentary cleanup."""
-        if self._orig_cwd:
-            os.chdir(self._orig_cwd)
+    def run(self):
+        self._init_server(self.address, self.port, self._app)
+
+        if self._server:
+            # Wait for a handle_request call to time out so we know we're ready
+            self._server.handle_request()
+            self.startup_finished.set()
+
+            self._server.serve_forever(poll_interval=0.1)
+        else:
+            # Something went wrong spinning up server
+            self.startup_finished.set()
 
 
 @contextlib.contextmanager
-def test_server(handler=_SilentSimpleHTTPRequestHandler, port=8514,
-                address="", methods=("get", "head"), cwd="./"):
+def test_server(response=None, status='200 OK', headers=[],
+                address='localhost', port=8514):
     """Context that makes available a web server in a separate thread"""
-    thread = _TestServerThread(handler=handler, methods=methods, cwd=cwd,
-                               port=port, address=address)
+
+    thread = TestServerThread(response=response, status=status,
+                              headers=headers, address=address, port=port)
     thread.start()
-
-    # fixme: should this be daemonized? If it isn't it will block the entire
-    # app, but that should never happen anyway..
     thread.startup_finished.wait()
-
-    if thread.error: # startup failed! Bail, throw whatever the server did
+    if thread.error:
         raise thread.error
 
-    exc = None
     try:
-        yield ServerContext(*thread.serverloc)
-    except Exception as exc:
-        pass
-    thread.stop()
-    thread.join(5) # giving it a lot of leeway. should never happen
-
-    if exc:
-        raise exc
-
-    # fixme: this takes second priorty after the internal exception but would
-    # still be nice to signal back to calling code.
-
-    if thread.isAlive():
-        raise Warning("Test server could not be stopped")
+        yield ServerContext(thread.address, thread.port)
+    finally:
+        thread.stop()
+        thread.join(5)
+        if thread.isAlive():
+            raise Warning("Test server could not be stopped")
