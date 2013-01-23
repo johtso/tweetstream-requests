@@ -52,7 +52,7 @@ class TestServerThread(threading.Thread):
     def _format_status(self, status):
         if isinstance(status, int):
             reason_phrase = http_responses[status][0]
-            status = '{} {}'.format(status, reason_phrase)
+            status = '{0} {1}'.format(status, reason_phrase)
         elif not isinstance(status, basestring):
             raise ValueError('Status must be string or int')
         return status
