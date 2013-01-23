@@ -148,10 +148,7 @@ class BaseStream(object):
     def _iter_lines(self):
         buf = b""
 
-        for chunk in self._conn.iter_content(
-            chunk_size=1,
-            decode_unicode=self._decode_unicode):
-
+        for chunk in self._conn.iter_content(chunk_size=1):
             buf += chunk
 
             if buf == b"":  # something is wrong
@@ -179,6 +176,11 @@ class BaseStream(object):
             self._init_conn()
         try:
             for line in self._iter_lines():
+                if self._decode_unicode:
+                    try:
+                        line = line.decode('utf-8')
+                    except UnicodeError:
+                        raise ReconnectImmediatelyError("Could not decode as unicode")
                 if self._parse_json:
                     try:
                         tweet = json.loads(line)

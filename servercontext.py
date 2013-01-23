@@ -7,6 +7,12 @@ try:
 except ImportError:
     from BaseHTTPServer import BaseHTTPRequestHandler
 
+# Python 3
+try:
+    unicode
+except NameError:
+    basestring = (str, bytes)
+
 http_responses = BaseHTTPRequestHandler.responses
 
 
@@ -64,9 +70,9 @@ class TestServerThread(threading.Thread):
                     iter_resp = response
                 if iter_resp:
                     for x in iter_resp:
-                        yield x
+                        yield x.encode('utf-8')
                 else:
-                    yield response
+                    yield response.encode('utf-8')
 
         return app
 
