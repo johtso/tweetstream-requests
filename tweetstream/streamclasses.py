@@ -216,7 +216,7 @@ class BaseStream(object):
         """
         self.connected = False
         if self._conn:
-            self._conn.raw.release_conn()
+            self._conn.close()
 
 
 class SampleStream(BaseStream):
