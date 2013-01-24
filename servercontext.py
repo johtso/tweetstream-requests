@@ -1,4 +1,5 @@
 import socket
+import random
 import threading
 import contextlib
 from wsgiref.simple_server import make_server
@@ -38,9 +39,9 @@ class TestServerThread(threading.Thread):
 
     daemon = True
 
-    def __init__(self, response, status, headers, address, port):
-        self.address = address
-        self.port = port
+    def __init__(self, response, status, headers):
+        self.address = 'localhost'
+        self.port = None
         self._app = self._make_app(response, status, headers)
         self._server = None
         self.error = None
@@ -76,21 +77,26 @@ class TestServerThread(threading.Thread):
 
         return app
 
-    def _init_server(self, address, port, app):
-        try:
-            self._server = make_server(address, port, app)
-        except socket.error as exc:
-            self.error = exc
-            return
-        else:
-            self._server.timeout = 0.1
-            self._server.allow_reuse_address = True
+    def _init_server(self, app):
+        attempts = 0
+        while attempts < 10:
+            self.port = random.randint(1025, 49151)
+            try:
+                self._server = make_server(self.address, self.port, app)
+            except socket.error as exc:
+                self.error = exc
+                attempts += 1
+            else:
+                self.error = None
+                self._server.timeout = 0.1
+                self._server.allow_reuse_address = True
+                return
 
     def stop(self):
         self._server.shutdown()
 
     def run(self):
-        self._init_server(self.address, self.port, self._app)
+        self._init_server(self._app)
 
         if self._server:
             # Wait for a handle_request call to time out so we know we're ready
@@ -104,12 +110,11 @@ class TestServerThread(threading.Thread):
 
 
 @contextlib.contextmanager
-def test_server(response=None, status='200 OK', headers=[],
-                address='localhost', port=8514):
+def test_server(response=None, status='200 OK', headers=[]):
     """Context that makes available a web server in a separate thread"""
 
     thread = TestServerThread(response=response, status=status,
-                              headers=headers, address=address, port=port)
+                              headers=headers)
     thread.start()
     thread.startup_finished.wait()
     if thread.error:
