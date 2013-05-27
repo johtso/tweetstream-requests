@@ -7,7 +7,11 @@ python:
   - pypy
 
 install:
-    pip install .
+  - "pip install ."
+  - "pip install pytest-cov coveralls"
 
 script:
-    py.test --runslow
+  py.test --runslow --cov tweetstream
+
+after_success:
+  coveralls
