@@ -58,7 +58,7 @@ finally:
 setup(name='tweetstream',
     version=meta["VERSION"],
     description=meta["doc"],
-    long_description=open("README.rst").read(),
+    long_description=open("README.md").read(),
     classifiers=[
         'License :: OSI Approved :: BSD License',
         'Intended Audience :: Developers',
