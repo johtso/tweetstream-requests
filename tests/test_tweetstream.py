@@ -11,9 +11,13 @@ from servercontext import test_server
 
 single_tweet = r"""{"in_reply_to_status_id":null,"in_reply_to_user_id":null,"favorited":false,"created_at":"Tue Jun 16 10:40:14 +0000 2009","in_reply_to_screen_name":null,"text":"record industry just keeps on amazing me: http:\/\/is.gd\/13lFo - $150k per song you've SHARED, not that somebody has actually DOWNLOADED.","user":{"notifications":null,"profile_background_tile":false,"followers_count":206,"time_zone":"Copenhagen","utc_offset":3600,"friends_count":191,"profile_background_color":"ffffff","profile_image_url":"http:\/\/s3.amazonaws.com\/twitter_production\/profile_images\/250715794\/profile_normal.png","description":"Digital product developer, currently at Opera Software. My tweets are my opinions, not those of my employer.","verified_profile":false,"protected":false,"favourites_count":0,"profile_text_color":"3C3940","screen_name":"eiriksnilsen","name":"Eirik Stridsklev N.","following":null,"created_at":"Tue May 06 12:24:12 +0000 2008","profile_background_image_url":"http:\/\/s3.amazonaws.com\/twitter_production\/profile_background_images\/10531192\/160x600opera15.gif","profile_link_color":"0099B9","profile_sidebar_fill_color":"95E8EC","url":"http:\/\/www.stridsklev-nilsen.no\/eirik","id":14672543,"statuses_count":506,"profile_sidebar_border_color":"5ED4DC","location":"Oslo, Norway"},"id":2190767504,"truncated":false,"source":"<a href=\"http:\/\/widgets.opera.com\/widget\/7206\">Twitter Opera widget<\/a>"}""" + "\r\n"
 
+BASIC_AUTH = ('username', 'password')
+
 streamtypes = [
-    dict(cls=SampleStream, args=[], kwargs=dict()),
-    dict(cls=FilterStream, args=[], kwargs=dict(track=("test",))),
+    dict(cls=SampleStream, args=[], kwargs=dict(auth=BASIC_AUTH)),
+    dict(cls=FilterStream, args=[], kwargs=dict(auth=BASIC_AUTH,
+                                                track=["test"],
+                                                follow=["test"])),
 ]
 
 
@@ -38,7 +42,8 @@ def test_bad_auth(cls, args, kwargs):
 
     with raises(AuthenticationError):
         with test_server(status=status) as server:
-            stream = cls(("user", "passwd"), *args, url=server.baseurl)
+            cls.url = server.baseurl
+            stream = cls(*args, **kwargs)
             for e in stream: pass
 
 
@@ -51,7 +56,8 @@ def test_404_url(cls, args, kwargs):
 
     with raises(ConnectionError):
         with test_server(status=status) as server:
-            stream = cls(("user", "passwd"), *args, url=server.baseurl)
+            cls.url = server.baseurl
+            stream = cls(*args, **kwargs)
             for e in stream: pass
 
 
@@ -69,7 +75,8 @@ def test_bad_content(cls, args, kwargs):
 
     with raises(ConnectionError):
         with test_server(response=bad_content) as server:
-            stream = cls(("user", "passwd"), *args, url=server.baseurl)
+            cls.url = server.baseurl
+            stream = cls(*args, **kwargs)
             for tweet in stream:
                 pass
 
@@ -78,6 +85,7 @@ def test_bad_content(cls, args, kwargs):
 def test_closed_connection(cls, args, kwargs):
     """Test error handling if server unexpectedly closes connection"""
     cnt = 1000
+
     def bad_content():
         for n in xrange(cnt):
             # what json we pass doesn't matter. It's not verifying the
@@ -86,7 +94,8 @@ def test_closed_connection(cls, args, kwargs):
 
     with raises(ConnectionError):
         with test_server(response=bad_content) as server:
-            stream = cls(("foo", "bar"), *args, url=server.baseurl)
+            cls.url = server.baseurl
+            stream = cls(*args, **kwargs)
             for tweet in stream:
                 pass
 
@@ -95,7 +104,8 @@ def test_closed_connection(cls, args, kwargs):
 def test_bad_host(cls, args, kwargs):
     """Test behaviour if we can't connect to the host"""
     with raises(ConnectionError):
-        stream = cls(("username", "passwd"), *args, url="http://wedfwecfghhreewerewads.foo")
+        cls.url = "http://wedfwecfghhreewerewads.foo"
+        stream = cls(*args, **kwargs)
         next(stream)
 
 
@@ -109,7 +119,8 @@ def smoke_test_receive_tweets(cls, args, kwargs):
             yield single_tweet
 
     with test_server(response=tweetsource) as server:
-        stream = cls(("foo", "bar"), *args, url=server.baseurl)
+        cls.url = server.baseurl
+        stream = cls(*args, **kwargs)
         for tweet in stream:
             if stream.count == total:
                 break
@@ -119,6 +130,7 @@ def smoke_test_receive_tweets(cls, args, kwargs):
 def test_keepalive(cls, args, kwargs):
     """Make sure we behave sanely when there are keepalive newlines in the
     data recevived from twitter"""
+
     def tweetsource():
         yield single_tweet
         yield "\r\n"
@@ -135,7 +147,8 @@ def test_keepalive(cls, args, kwargs):
         yield "\r\n"
 
     with test_server(response=tweetsource) as server:
-        stream = cls(("foo", "bar"), *args, url=server.baseurl)
+        cls.url = server.baseurl
+        stream = cls(*args, **kwargs)
         try:
             for tweet in stream:
                 pass
@@ -163,7 +176,8 @@ def test_buffering(cls, args, kwargs):
             yield single_tweet
 
     with test_server(response=tweetsource) as server:
-        stream = cls(("foo", "bar"), *args, url=server.baseurl)
+        cls.url = server.baseurl
+        stream = cls(*args, **kwargs)
         start = time.time()
         next(stream)
         first = time.time()
