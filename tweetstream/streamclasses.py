@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import time
 import json
 import ssl
@@ -229,17 +231,17 @@ class FilterStream(BaseStream):
     def __init__(self, auth=None, follow=None, locations=None,
                  track=None, catchup=None, parse_json=True,
                  decode_unicode=True, timeout=90, url=None):
-        self._follow = follow
-        self._locations = locations
-        self._track = track
-        # remove follow, locations, track
+        self.parameters = dict(
+            track=track, follow=follow, locations=locations
+        )
+
         BaseStream.__init__(self, auth=auth, parse_json=parse_json,
                             decode_unicode=decode_unicode, timeout=timeout,
                             url=url)
 
     def _get_post_data(self):
-        postdata = {}
-        if self._follow: postdata["follow"] = ",".join([str(e) for e in self._follow])
-        if self._locations: postdata["locations"] = ",".join(self._locations)
-        if self._track: postdata["track"] = ",".join(self._track)
-        return postdata
+        post_data = {}
+        for key, value in self.parameters.items():
+            if value:
+                post_data[key] = ','.join(value)
+        return post_data
