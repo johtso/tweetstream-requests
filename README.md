@@ -1,6 +1,6 @@
 # tweetstream - Simple twitter streaming API #
 
-[![Build Status](https://travis-ci.org/johtso/tweetstream-requests.png)](https://travis-ci.org/johtso/tweetstream-requests)
+[![Build Status](https://travis-ci.org/johtso/tweetstream-requests.png?branch=master)](https://travis-ci.org/johtso/tweetstream-requests)
 [![Coverage Status](https://coveralls.io/repos/johtso/tweetstream-requests/badge.png?branch=master)](https://coveralls.io/r/johtso/tweetstream-requests?branch=master)
 
 Introduction
