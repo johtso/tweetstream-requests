@@ -12,7 +12,7 @@ setup(
     description="Simple access to Twitter's streaming API",
     long_description=open('README.md').read(),
     packages=['tweetstream'],
-    install_requires=['anyjson', 'requests>=1.0.0,<=1.1.0'],
+    install_requires=['requests>=1.0.0,<=1.2.3'],
     include_package_data=True,
     zip_safe=False,
     platforms='any',
