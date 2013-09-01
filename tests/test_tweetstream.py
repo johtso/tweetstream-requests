@@ -6,8 +6,10 @@ import pytest
 from pytest import raises
 slow = pytest.mark.slow
 
-from tweetstream import (ConnectionError, AuthenticationError, SampleStream,
-                         FilterStream)
+from tweetstream import (
+    SampleStream, FilterStream, ConnectionError, AuthenticationError, 
+    EnhanceYourCalmError, ReconnectExponentiallyError
+)
 
 from servercontext import test_server
 
@@ -38,28 +40,18 @@ def pytest_generate_tests(metafunc):
 
 
 @parameterized(streamtypes)
-def test_bad_auth(cls, args, kwargs):
-    """Test that the proper exception is raised when the user could not be
-    authenticated"""
+@pytest.mark.parametrize(('status_code', 'exception'), [
+    (401, AuthenticationError),
+    (404, ConnectionError),
+    (420, EnhanceYourCalmError),
+    (418, ReconnectExponentiallyError)
+])
+def test_reponse_code_exceptions(cls, args, kwargs, status_code, exception):
+    """Test that the proper exception is raised when the given status code is
+    recieved"""
 
-    status = 401
-
-    with raises(AuthenticationError):
-        with test_server(status=status) as server:
-            cls.url = server.baseurl
-            stream = cls(*args, **kwargs)
-            for e in stream: pass
-
-
-@parameterized(streamtypes)
-def test_404_url(cls, args, kwargs):
-    """Test that the proper exception is raised when the stream URL can't be
-    found"""
-
-    status = 404
-
-    with raises(ConnectionError):
-        with test_server(status=status) as server:
+    with raises(exception):
+        with test_server(status=status_code) as server:
             cls.url = server.baseurl
             stream = cls(*args, **kwargs)
             for e in stream: pass

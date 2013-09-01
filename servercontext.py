@@ -15,6 +15,10 @@ except NameError:
     basestring = (str, bytes)
 
 http_responses = BaseHTTPRequestHandler.responses
+http_responses.update({
+    420: ('Enhance your calm', 'Increase your relaxation'),
+    418: ("I'm a teapot", 'Short and stout'),
+})
 
 
 class ServerContext(object):

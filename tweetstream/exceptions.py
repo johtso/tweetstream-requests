@@ -9,7 +9,7 @@ class ConnectionError(TweetStreamError):
     """Raised when there are network problems. This means when there are
     dns errors, network errors, twitter issues"""
 
-    def __init__(self, reason, details=None):
+    def __init__(self, reason='', details=None):
         self.reason = reason
         self.details = details
 
