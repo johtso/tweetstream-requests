@@ -1,6 +1,6 @@
 """Simple access to Twitter's streaming API"""
 
-__version__ = '2.0-dev'
+__version__ = '2.1-dev'
 
 
 """
