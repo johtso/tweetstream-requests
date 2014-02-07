@@ -5,6 +5,10 @@ import json
 import ssl
 
 import requests
+try:
+    from http.client import IncompleteRead
+except ImportError:
+    from httplib import IncompleteRead
 
 from . import USER_AGENT
 from .exceptions import (
@@ -205,6 +209,8 @@ class BaseStream(object):
                     raise
                 else:
                     raise ReconnectImmediatelyError("Stream timed out.")
+        except IncompleteRead as e:
+            raise ReconnectImmediatelyError(str(e))
 
         raise ReconnectImmediatelyError("Server disconnected.")
 
