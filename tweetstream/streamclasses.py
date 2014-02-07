@@ -233,6 +233,9 @@ class FilterStream(BaseStream):
     def __init__(self, auth=None, follow=None, locations=None,
                  track=None, catchup=None, parse_json=True,
                  decode_unicode=True, timeout=90, url=None):
+        if not track and not follow:
+            raise ValueError('Must specify at least one track or follow.')
+
         self.parameters = dict(
             track=track, follow=follow, locations=locations
         )

@@ -39,6 +39,11 @@ def pytest_generate_tests(metafunc):
         metafunc.addcall(funcargs=funcargs)
 
 
+def test_initialize_filterstream_without_params():
+    with pytest.raises(ValueError):
+        FilterStream(auth=BASIC_AUTH)
+
+
 @parameterized(streamtypes)
 @pytest.mark.parametrize(('status_code', 'exception'), [
     # Unauthorized
