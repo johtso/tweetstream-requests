@@ -41,9 +41,13 @@ def pytest_generate_tests(metafunc):
 
 @parameterized(streamtypes)
 @pytest.mark.parametrize(('status_code', 'exception'), [
+    # Unauthorized
     (401, AuthenticationError),
+    # Not Found
     (404, ConnectionError),
+    # Enhance Your Calm
     (420, EnhanceYourCalmError),
+    # Unhandled failure codes
     (418, ReconnectExponentiallyError)
 ])
 def test_reponse_code_exceptions(cls, args, kwargs, status_code, exception):
