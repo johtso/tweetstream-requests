@@ -9,7 +9,7 @@ import requests
 from . import USER_AGENT
 from .exceptions import (
     ReconnectImmediatelyError, ReconnectLinearlyError, EnhanceYourCalmError,
-    ReconnectExponentiallyError, AuthenticationError
+    ReconnectExponentiallyError, AuthenticationError, FatalError,
 )
 
 
@@ -129,7 +129,9 @@ class BaseStream(object):
             if code == 401:
                 raise AuthenticationError("Access denied")
             elif code == 404:
-                raise ReconnectExponentiallyError("%s: %s" % (self.url, e))
+                raise FatalError("%s: %s" % (self.url, e))
+            elif code in (406, 413, 416):
+                raise FatalError(str(e))
             elif code == 420:
                 raise EnhanceYourCalmError
             else:

@@ -4,17 +4,22 @@
 class TweetStreamError(Exception):
     """Base class for all tweetstream errors"""
 
-
-class ConnectionError(TweetStreamError):
-    """Raised when there are network problems. This means when there are
-    dns errors, network errors, twitter issues"""
-
     def __init__(self, reason='', details=None):
         self.reason = reason
         self.details = details
 
     def __str__(self):
         return '<%s %s>' % (self.__class__.__name__, self.reason)
+
+
+class FatalError(TweetStreamError):
+    """Raised when an unrecoverable issue occurs, such as the request sent
+    to Twitter being malformed."""
+
+
+class ConnectionError(TweetStreamError):
+    """Raised when there are network problems. This means when there are
+    dns errors, network errors, twitter issues"""
 
 
 # The following exceptions track the various types of reconnection guidance

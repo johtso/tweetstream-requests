@@ -8,7 +8,7 @@ slow = pytest.mark.slow
 
 from tweetstream import (
     SampleStream, FilterStream, ConnectionError, AuthenticationError, 
-    EnhanceYourCalmError, ReconnectExponentiallyError
+    EnhanceYourCalmError, ReconnectExponentiallyError, FatalError,
 )
 
 from servercontext import test_server
@@ -44,11 +44,17 @@ def pytest_generate_tests(metafunc):
     # Unauthorized
     (401, AuthenticationError),
     # Not Found
-    (404, ConnectionError),
+    (404, FatalError),
+    # Not Acceptable
+    (406, FatalError),
+    # Too Long
+    (413, FatalError),
+    # Range Unacceptable
+    (416, FatalError),
+    # Unhandled failure codes
+    (418, ReconnectExponentiallyError),
     # Enhance Your Calm
     (420, EnhanceYourCalmError),
-    # Unhandled failure codes
-    (418, ReconnectExponentiallyError)
 ])
 def test_reponse_code_exceptions(cls, args, kwargs, status_code, exception):
     """Test that the proper exception is raised when the given status code is

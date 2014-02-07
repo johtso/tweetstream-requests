@@ -17,5 +17,5 @@ from .exceptions import (
     TweetStreamError, ConnectionError, ReconnectError,
     ReconnectImmediatelyError, ReconnectLinearlyError,
     ReconnectExponentiallyError, AuthenticationError,
-    EnhanceYourCalmError
+    EnhanceYourCalmError, FatalError,
 )
